@@ -14,3 +14,16 @@ repos:
   - id: check-shebang-scripts-are-executable
   - id: check-executables-have-shebangs
   - id: check-toml
+
+- repo: https://github.com/python-poetry/poetry
+  rev: 1.4.0
+  hooks:
+  - id: poetry-check
+  - id: poetry-lock
+    args: [--no-update, --check]
+  - id: poetry-export
+    args: [--without-hashes, --output, requirements/requirements.txt]
+    name: poetry-export-requirements
+  - id: poetry-export
+    args: [--without-hashes, --only, dev, --output, requirements/requirements-dev.txt]
+    name: poetry-export-dev-requirements
