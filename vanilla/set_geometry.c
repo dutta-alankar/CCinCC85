@@ -3,7 +3,7 @@
   \file
   \brief Initialize geometry-dependent grid quantities.
 
-  Compute grid quantities (such as interface areas, volumes, 
+  Compute grid quantities (such as interface areas, volumes,
   centroid of volume, etc..) that depend on the geometry.
 
   \author A. Mignone (mignone@to.infn.it)
@@ -41,7 +41,7 @@ void SetGeometry (Grid *grid)
 
 /* --------------------------------------------------------------
    0. Allocate memory for the Grid structue.
-      All values are defined at the cell center 
+      All values are defined at the cell center
       with the exception of the area element which is defined on a
       staggered mesh and therefore starts at [-1].
    ----------------------------------------------------------- */
@@ -51,11 +51,11 @@ void SetGeometry (Grid *grid)
     grid->A[IDIR] = ARRAY_BOX( 0, nx3_tot-1,  0, nx2_tot-1, -1, nx1_tot-1, double);
     grid->A[JDIR] = ARRAY_BOX( 0, nx3_tot-1, -1, nx2_tot-1,  0, nx1_tot-1, double);
     grid->A[KDIR] = ARRAY_BOX(-1, nx3_tot-1,  0, nx2_tot-1,  0, nx1_tot-1, double);
-  
+
     grid->dx_dl[IDIR] = ARRAY_2D(nx2_tot, nx1_tot, double);
     grid->dx_dl[JDIR] = ARRAY_2D(nx2_tot, nx1_tot, double);
     grid->dx_dl[KDIR] = ARRAY_2D(nx2_tot, nx1_tot, double);
-  
+
     grid->rt  = ARRAY_1D(grid->np_tot[IDIR], double);
     grid->sp  = ARRAY_1D(grid->np_tot[JDIR], double);
     grid->s   = ARRAY_1D(grid->np_tot[JDIR], double);
@@ -66,7 +66,7 @@ void SetGeometry (Grid *grid)
       grid->inv_dxi[idim] = ARRAY_1D(grid->np_tot[idim], double);
     }
   }
-  
+
 /* ----------------------------------------------------------
    1a. Compute positions arrays in the X1 (IDIR) direction
    ---------------------------------------------------------- */
@@ -78,7 +78,7 @@ void SetGeometry (Grid *grid)
     grid->xgc[IDIR][i] = x1[i];
     grid->rt[i]        = x1[i];
     #elif GEOMETRY == CYLINDRICAL || GEOMETRY == POLAR
-    grid->xgc[IDIR][i] = x1[i] + dx1[i]*dx1[i]/(12.0*x1[i]); 
+    grid->xgc[IDIR][i] = x1[i] + dx1[i]*dx1[i]/(12.0*x1[i]);
     grid->rt[i]        = x1[i];
     #elif GEOMETRY == SPHERICAL
     grid->xgc[IDIR][i] = x1[i] + 2.0*x1[i]*dx1[i]*dx1[i]/
@@ -115,7 +115,7 @@ void SetGeometry (Grid *grid)
   }
 
 /* ------------------------------------------------------------
-   2. Compute volumes 
+   2. Compute volumes
    ------------------------------------------------------------ */
 
   for (k = 0; k <= kend; k++){
@@ -148,7 +148,7 @@ void SetGeometry (Grid *grid)
   for (j =  0; j <= jend; j++){
   for (i = -1; i <= iend; i++){
     #if GEOMETRY == CARTESIAN
-    Ax1[k][j][i] = DIM_EXPAND(1.0, *dx2[j], *dx3[k]);         /* = dy*dz */ 
+    Ax1[k][j][i] = DIM_EXPAND(1.0, *dx2[j], *dx3[k]);         /* = dy*dz */
     #elif GEOMETRY == CYLINDRICAL
     if (i == -1) {
       Ax1[k][j][i] = DIM_EXPAND(fabs(x1m[0]), *dx2[j], *1.0); /* = rp*dz */
@@ -183,7 +183,7 @@ void SetGeometry (Grid *grid)
     #elif GEOMETRY == CYLINDRICAL
     Ax2[k][j][i] = DIM_EXPAND(fabs(x1[i]), *dx1[i], *1.0);   /* = r*dr */
     #elif GEOMETRY == POLAR
-    Ax2[k][j][i] = DIM_EXPAND(dx1[i], *1.0, *dx3[k]);        /* = dr*dz */    
+    Ax2[k][j][i] = DIM_EXPAND(dx1[i], *1.0, *dx3[k]);        /* = dr*dz */
     #elif GEOMETRY == SPHERICAL
     if (j == -1){
       Ax2[k][j][i] = DIM_EXPAND(fabs(x1[i])*dx1[i], *fabs(sin(x2m[0])), *dx3[k]); /* = r*dr*sin(thp)*dphi */
@@ -201,13 +201,13 @@ void SetGeometry (Grid *grid)
   for (j =  0; j <= jend; j++){
   for (i =  0; i <= iend; i++){
     #if GEOMETRY == CARTESIAN
-    Ax3[k][j][i] = DIM_EXPAND(dx1[i], *dx2[j], *1.0);  /* = dx*dy */ 
+    Ax3[k][j][i] = DIM_EXPAND(dx1[i], *dx2[j], *1.0);  /* = dx*dy */
     #elif GEOMETRY == CYLINDRICAL
     Ax3[k][j][i] = 1.0;                              /* No 3rd direction in cylindrical coords */
     #elif GEOMETRY == POLAR
     Ax3[k][j][i] = DIM_EXPAND(fabs(x1[i])*dx1[i], *dx2[j], *1.0);   /* = |r|*dr*dphi */
     #elif GEOMETRY == SPHERICAL
-    Ax3[k][j][i] = DIM_EXPAND(fabs(x1[i])*dx1[i], *dx2[j], *1.0);   /* = r*dr*dth */        
+    Ax3[k][j][i] = DIM_EXPAND(fabs(x1[i])*dx1[i], *dx2[j], *1.0);   /* = r*dr*dth */
     #endif
   }}}
 
@@ -235,7 +235,7 @@ void SetGeometry (Grid *grid)
     grid->dx_dl[KDIR][j][i] = dx2[j]/(grid->rt[i]*grid->dmu[j]);
     #endif
   }}}
-  
+
 /* ---------------------------------------------------------
    5. Compute and store the reciprocal of cell spacing
       between interfaces (inv_dx) and cell centers (inv_dxi)
@@ -249,7 +249,7 @@ void SetGeometry (Grid *grid)
     for (i = 0; i < grid->np_tot[idim]-1; i++) {
       grid->inv_dxi[idim][i] = 2.0/(grid->dx[idim][i] + grid->dx[idim][i+1]);
     }
-  }  
+  }
 }
 
 /* ********************************************************************** */
@@ -312,7 +312,7 @@ double *GetInverse_dl (const Grid *grid)
  *    {dr}_i                      if g_dir == IDIR
  *    {r_i*dtheta}_j              if g_dir == JDIR
  *    {r_i*sin(theta_j)*dphi}_k   if g_dir == KDIR
- *   
+ *
  *
  ********************************************************************* */
 {
@@ -328,7 +328,7 @@ double *GetInverse_dl (const Grid *grid)
     int    j;
     double r_1;
     static double *inv_dl;
-   
+
     if (inv_dl == NULL) {
      #ifdef CHOMBO
       inv_dl = ARRAY_1D(NX2_MAX, double);
@@ -375,4 +375,3 @@ double *GetInverse_dl (const Grid *grid)
 
   return NULL;
 }
-

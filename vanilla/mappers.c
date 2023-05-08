@@ -3,18 +3,18 @@
   \file
   \brief Convert between primitive and conservative variables.
 
-  The PrimToCons() converts an array of primitive quantities to 
+  The PrimToCons() converts an array of primitive quantities to
   an array of conservative variables for the HD equations.
-  
-  The ConsToPrim() converts an array of conservative quantities to 
+
+  The ConsToPrim() converts an array of conservative quantities to
   an array of primitive quantities.
-  During the conversion, pressure is normally recovered from total 
+  During the conversion, pressure is normally recovered from total
   energy unless zone has been tagged with FLAG_ENTROPY.
   In this case we recover pressure from conserved entropy:
-  
+
       if (FLAG_ENTROPY is TRUE)  --> p = p(S)
       else                       --> p = p(E)
-  
+
   \author A. Mignone (mignone@ph.unito.it)
           B. Vaidya
   \date   June 24, 2015
@@ -26,7 +26,7 @@
 /* ********************************************************************* */
 void PrimToCons (double **uprim, double **ucons, int ibeg, int iend)
 /*!
- * Convert primitive variables to conservative variables. 
+ * Convert primitive variables to conservative variables.
  *
  * \param [in]  uprim array of primitive variables
  * \param [out] ucons array of conservative variables
@@ -43,7 +43,7 @@ void PrimToCons (double **uprim, double **ucons, int ibeg, int iend)
    gmm1 = g_gamma - 1.0;
   #endif
   for (i = ibeg; i <= iend; i++) {
-  
+
     v = uprim[i];
     u = ucons[i];
 
@@ -71,7 +71,7 @@ void PrimToCons (double **uprim, double **ucons, int ibeg, int iend)
       QUIT_PLUTO(1);
     }
     #endif   /* EOS == PVTE_LAW */
-    
+
     #if DUST_FLUID == YES
     u[RHO_D] = v[RHO_D];
     u[MX1_D] = v[RHO_D]*v[VX1_D];
@@ -79,14 +79,14 @@ void PrimToCons (double **uprim, double **ucons, int ibeg, int iend)
     u[MX3_D] = v[RHO_D]*v[VX3_D];
     #endif
 
-    #if NSCL > 0 
+    #if NSCL > 0
     NSCL_LOOP(nv) u[nv] = rho*v[nv];
-    #endif    
+    #endif
   }
 
 }
 /* ********************************************************************* */
-int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend, 
+int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
                 unsigned char *flag)
 /*!
  * Convert from conservative to primitive variables.
@@ -99,11 +99,11 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
  *                         where entropy must be used to recover pressure
  *                         and, on output, zones where conversion was
  *                         not successful.
- * 
- * \return Return 0 if conversion was successful in all zones in the 
+ *
+ * \return Return 0 if conversion was successful in all zones in the
  *         range [ibeg,iend].
  *         Return 1 if one or more zones could not be converted correctly
- *         and either pressure, density or energy took non-physical values. 
+ *         and either pressure, density or energy took non-physical values.
  *
  *********************************************************************** */
 {
@@ -122,11 +122,11 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
 
     u = ucons[i];
     v = uprim[i];
-   
+
     m2  = u[MX1]*u[MX1] + u[MX2]*u[MX2] + u[MX3]*u[MX3];
-    
+
   /* -- Check density positivity -- */
-  
+
     if (u[RHO] < g_smallDensity) {
       #if VERBOSE!=NO
       printLog("! ConsToPrim: rho (%8.2e) < smallDensity (%8.2e) , ", u[RHO], g_smallDensity);
@@ -144,7 +144,7 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
     v[VX1] = u[MX1]*tau;
     v[VX2] = u[MX2]*tau;
     v[VX3] = u[MX3]*tau;
-    
+
     if (fabs(v[VX1]*UNIT_VELOCITY)>=1e9) v[VX1]=1e9/UNIT_VELOCITY*(v[VX1]/fabs(v[VX1]));
     if (fabs(v[VX2]*UNIT_VELOCITY)>=1e9) v[VX2]=1e9/UNIT_VELOCITY*(v[VX2]/fabs(v[VX2]));
     if (fabs(v[VX3]*UNIT_VELOCITY)>=1e9) v[VX3]=1e9/UNIT_VELOCITY*(v[VX3]/fabs(v[VX3]));
@@ -169,13 +169,13 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
 
   /* -- Compute pressure from total energy or entropy -- */
 
-    #if EOS == IDEAL   
+    #if EOS == IDEAL
     #if ENTROPY_SWITCH
     use_entropy = (flag[i] & FLAG_ENTROPY);
     use_energy  = !use_entropy;
     if (use_entropy){
       rhog1 = pow(rho, gmm1);
-      v[PRS] = u[ENTR]*rhog1; 
+      v[PRS] = u[ENTR]*rhog1;
       if (v[PRS] < 0.0){
         #if VERBOSE != NO
         WARNING(
@@ -209,21 +209,21 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
       u[ENTR] = v[PRS]/pow(rho,gmm1);
       #endif
     }
-      
+
     #elif EOS == PVTE_LAW
 
   /* -- Convert scalars here since EoS may need ion fractions -- */
 
-    #if NSCL > 0                       
+    #if NSCL > 0
     NSCL_LOOP(nv) v[nv] = u[nv]*tau;
-    #endif    
+    #endif
 
     if (u[ENG] != u[ENG]){
       printLog ("! ConsToPrim(): NaN found in energy\n");
       Show(ucons,i);
       QUIT_PLUTO(1);
     }
-    rhoe = u[ENG] - kin; 
+    rhoe = u[ENG] - kin;
 
     err = GetEV_Temperature (rhoe, v, &T);
     if (err){  /* If something went wrong while retrieving the  */
@@ -231,7 +231,7 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
                /* recompute internal and total energies.        */
       T = T_CUT_RHOE;
       #if VERBOSE != NO
-      WARNING(  
+      WARNING(
         printLog ("! ConsToPrim: rhoe < 0 or T < T_CUT_RHOE; "); Where(i,NULL);
       )
       #endif
@@ -255,10 +255,10 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
     v[VX3_D] = u[MX3_D]/v[RHO_D];
     #endif
 
-    #if NSCL > 0                    
+    #if NSCL > 0
     NSCL_LOOP(nv) v[nv] = u[nv]*tau;
-    #endif    
-    
+    #endif
+
   }
   return ifail;
 }

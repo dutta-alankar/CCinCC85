@@ -14,7 +14,7 @@ ntracers = 1
 
 catalyst_ini = \
 f'''
-/* ----------- Auto generated from generateCatalystAdaptor.py ----------------- 
+/* ----------- Auto generated from generateCatalystAdaptor.py -----------------
 Created on {time.ctime()}
 
 @author: alankar                                                                */
@@ -61,33 +61,33 @@ catalyst_execute_p1 = \
 void do_catalyst_execute(int cycle, double time, Grid* grid, Data* d)
 {
   /*   Conversion to Conduit (catalyst) compatible data arrangement   */
-  
+
   unsigned int i, j, k;
   static unsigned int initialized = 0;
   unsigned int counter = 0;
-  
+
   static double *xp, *yp, *zp;
   static uint64_t *CellConn;
   const uint64_t numCells = grid->np_tot[IDIR]*grid->np_tot[JDIR]*grid->np_tot[KDIR];
   const uint64_t numPoints[3] = {grid->np_tot[IDIR]+1, grid->np_tot[JDIR]+1, grid->np_tot[KDIR]+1};
-  
+
   //double ***temperature  = GetUserVar("temperature");
-  //ComputeUserVar (d, grid);  
+  //ComputeUserVar (d, grid);
 
   if (initialized==0){
     xp = (double *)malloc((grid->np_tot[IDIR]+1) * (grid->np_tot[JDIR]+1) * (grid->np_tot[KDIR]+1) * sizeof(double));
     yp = (double *)malloc((grid->np_tot[IDIR]+1) * (grid->np_tot[JDIR]+1) * (grid->np_tot[KDIR]+1) * sizeof(double));
     zp = (double *)malloc((grid->np_tot[IDIR]+1) * (grid->np_tot[JDIR]+1) * (grid->np_tot[KDIR]+1) * sizeof(double));
     CellConn   = (uint64_t*)malloc(8 * numCells * sizeof(int64_t));
-    
+
     for(k=0; k<grid->np_tot[KDIR]; k++)
     {
       for(j=0; j<grid->np_tot[JDIR]; j++)
       {
         for(i=0; i<grid->np_tot[IDIR]; i++)
-        { 
+        {
           //cell_count = k * grid->np_tot[IDIR] * grid->np_tot[JDIR] + j * grid->np_tot[IDIR] + i;
-          CellConn[counter++] =     k * numPoints[JDIR]*numPoints[IDIR] +     j * numPoints[IDIR] + i; 
+          CellConn[counter++] =     k * numPoints[JDIR]*numPoints[IDIR] +     j * numPoints[IDIR] + i;
 
           CellConn[counter++] = (k+1) * numPoints[JDIR]*numPoints[IDIR] +     j * numPoints[IDIR] + i;
 
@@ -106,7 +106,7 @@ void do_catalyst_execute(int cycle, double time, Grid* grid, Data* d)
       }
     }
   }
-  
+
   counter = 0;
   double x1, x2, x3;
   for (k = 0; k<=grid->np_tot[KDIR]; k++){
@@ -160,17 +160,17 @@ catalyst_grid = \
   conduit_node_set_path_int64(catalyst_exec_params, "catalyst/state/timestep", cycle);
   conduit_node_set_path_int64(catalyst_exec_params, "catalyst/state/cycle", cycle);
   conduit_node_set_path_float64(catalyst_exec_params, "catalyst/state/time", time);
-  
+
   conduit_node_set_path_char8_str(catalyst_exec_params, "catalyst/channels/grid/type", "mesh");
   conduit_node* mesh = conduit_node_create();
-  
+
   // add coordsets
   conduit_node_set_path_char8_str(mesh, "coordsets/coords/type", "explicit");
-  
+
   conduit_node_set_path_external_float64_ptr(mesh, "coordsets/coords/values/X", xp, numPoints[IDIR]*numPoints[JDIR]*numPoints[KDIR]);
   conduit_node_set_path_external_float64_ptr(mesh, "coordsets/coords/values/Y", yp, numPoints[IDIR]*numPoints[JDIR]*numPoints[KDIR]);
   conduit_node_set_path_external_float64_ptr(mesh, "coordsets/coords/values/Z", zp, numPoints[IDIR]*numPoints[JDIR]*numPoints[KDIR]);
-  
+
   // add topologies
   conduit_node_set_path_char8_str(mesh, "topologies/mesh/type", "unstructured");
   conduit_node_set_path_char8_str(mesh, "topologies/mesh/coordset", "coords");
@@ -187,9 +187,9 @@ for pos, field in enumerate(dump_vars):
   conduit_node_set_path_char8_str(mesh, "fields/{field}/association", "element");
   conduit_node_set_path_char8_str(mesh, "fields/{field}/topology", "mesh");
   conduit_node_set_path_char8_str(mesh, "fields/{field}/volume_dependent", "false");
-  conduit_node_set_path_external_float64_ptr(mesh, "fields/{field}/values", /*{field} */(double *)(**d->Vc[{code_vars[pos]}]), numCells );    
+  conduit_node_set_path_external_float64_ptr(mesh, "fields/{field}/values", /*{field} */(double *)(**d->Vc[{code_vars[pos]}]), numCells );
     '''
-    
+
 for i in range(ntracers):
     catalyst_field += \
     f'''
@@ -197,9 +197,9 @@ for i in range(ntracers):
   conduit_node_set_path_char8_str(mesh, "fields/tr{i+1}/association", "element");
   conduit_node_set_path_char8_str(mesh, "fields/tr{i+1}/topology", "mesh");
   conduit_node_set_path_char8_str(mesh, "fields/tr{i+1}/volume_dependent", "false");
-  conduit_node_set_path_external_float64_ptr(mesh, "fields/tr{i+1}/values", /*tr{i+1} */(double *)(**d->Vc[TRC{'+'+str(i) if i>0 else ''}]), numCells );    
+  conduit_node_set_path_external_float64_ptr(mesh, "fields/tr{i+1}/values", /*tr{i+1} */(double *)(**d->Vc[TRC{'+'+str(i) if i>0 else ''}]), numCells );
     '''
-    
+
 if len(user_vars) != 0:
     catalyst_field +=\
     f'''
@@ -213,13 +213,13 @@ if len(user_vars) != 0:
   conduit_node_set_path_char8_str(mesh, "fields/{field}/association", "element");
   conduit_node_set_path_char8_str(mesh, "fields/{field}/topology", "mesh");
   conduit_node_set_path_char8_str(mesh, "fields/{field}/volume_dependent", "false");
-  conduit_node_set_path_external_float64_ptr(mesh, "fields/{field}/values", /*{field} */(double *)(**{field}), numCells ); 
+  conduit_node_set_path_external_float64_ptr(mesh, "fields/{field}/values", /*{field} */(double *)(**{field}), numCells );
         '''
-    
+
 catalyst_execute_p2 = '''
   // add the mesh info (conduit mesh) to catalyst_exec_params
   conduit_node_set_path_external_node(catalyst_exec_params, "catalyst/channels/grid/data", mesh);
-  
+
   #ifdef CATALYST_DEBUG
   // print for debugging purposes, if needed
   conduit_node_print(catalyst_exec_params);
@@ -230,7 +230,7 @@ catalyst_execute_p2 = '''
   conduit_node_print(info);
   conduit_node_destroy(info);
   #endif
-  
+
   initialized = 1;
   enum catalyst_status err = catalyst_execute(catalyst_exec_params);
   if (err != catalyst_status_ok)

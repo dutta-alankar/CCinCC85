@@ -55,8 +55,8 @@ X3-grid    1     {phbeg:<9.2f}    {Nph:<6}      u        {phend:.2f}
 [Chombo Refinement]
 
 Levels           4
-Ref_ratio        2 2 2 2 2 
-Regrid_interval  2 2 2 2 
+Ref_ratio        2 2 2 2 2
+Regrid_interval  2 2 2 2
 Refine_thresh    0.3
 Tag_buffer_size  3
 Block_factor     8
@@ -93,8 +93,8 @@ flt       -1.0          -1   single_file
 vtk       -1.0          -1   single_file
 flt.h5    -1.0          -1   single_file
 dbl.h5    {2.0*tcc:<8.2e}      -1   single_file
-tab       -1.0          -1  
-ppm       -1.0          -1   
+tab       -1.0          -1
+ppm       -1.0          -1
 png       -1.0          -1
 log        100
 analysis  {dt_analysis:<8.2e}      -1
@@ -102,7 +102,7 @@ analysis  {dt_analysis:<8.2e}      -1
 [Chombo HDF5 output]
 
 Checkpoint_interval  -1.0  0
-Plot_interval         1.0  0 
+Plot_interval         1.0  0
 
 [Particles]
 

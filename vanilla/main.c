@@ -1,19 +1,19 @@
 /* ///////////////////////////////////////////////////////////////////// */
-/*! 
-  \file  
+/*!
+  \file
   \brief PLUTO main function.
- 
-  The file main.c contains the PLUTO main function and several other 
+
+  The file main.c contains the PLUTO main function and several other
   top-level routines.
-  main() provides basic code initialization, handles the the principal 
+  main() provides basic code initialization, handles the the principal
   integration loop and calls the output driver write_data.c.
   Other useful functions contained in this file are Integrate() which does
   the actual integration, NextTimeStep() responsible for computing the
   next time step based on the information available at the last time
   level.
-  
+
   The standard integration loop consists of the following steps:
- 
+
    - Check for last step & adjust dt if necessary
    - Dump log information, n, t(n), dt(n), MAX_MACH(n-1), etc..
    - Check output/analysis:  t(n) < tout < t(n)+dt(n)
@@ -24,7 +24,7 @@
    - Get next time step dt(n+1)
    - [MPI] reduction operations (n)
    - Increment n --> n+1
- 
+
   \author A. Mignone (mignone@to.infn.it)
   \date   Nov 12, 2020
 */
@@ -54,7 +54,7 @@ static void MoveTrack (const Data *, Grid *, Runtime *, cmdLine *);
 /* ********************************************************************* */
 int main (int argc, char *argv[])
 /*!
- * Start PLUTO, initialize functions, define data structures and 
+ * Start PLUTO, initialize functions, define data structures and
  * handle the main integration loop.
  *
  * \param [in] argc Argument counts.
@@ -62,7 +62,7 @@ int main (int argc, char *argv[])
  * \return This function return 0 on normal exit.
  *
  *********************************************************************** */
-{ 
+{
   int    nv, idim, err;
   char   first_step=1, last_step = 0;
   char   input_file[128];
@@ -122,7 +122,7 @@ int main (int argc, char *argv[])
 
   Dts.cmax      = ARRAY_1D(NMAX_POINT, double);
   Dts.invDt_hyp = 0.0;
-  Dts.invDt_par = 0.5e-38; 
+  Dts.invDt_par = 0.5e-38;
   Dts.dt_cool   = 1.e38;
   Dts.cfl       = runtime.cfl;
   Dts.cfl_par   = runtime.cfl_par;
@@ -138,16 +138,16 @@ int main (int argc, char *argv[])
 
   g_stepNumber = 0;
   g_anldt = runtime.anl_dt;
-  
+
   #ifdef USE_CATALYST
   do_catalyst_initialization(cmd_line.catScriptCount, cmd_line.catScriptNames);
   #endif
-  
+
 /* --------------------------------------------------------
-   0e. Check if restart is necessary. 
+   0e. Check if restart is necessary.
        If not, write initial condition to disk.
    ------------------------------------------------------- */
-  
+
   if (cmd_line.restart == YES) {
     RestartFromFile (&runtime, cmd_line.nrestart, DBL_OUTPUT, grd);
     #if PARTICLES
@@ -167,7 +167,7 @@ int main (int argc, char *argv[])
 
   if (cmd_line.maxsteps == 0) last_step = 1;
   g_minCoolingTemp = 1.e4;
-  print ("> Starting computation... \n\n");  
+  print ("> Starting computation... \n\n");
 
 /* =====================================================================
    1.  M A I N      L O O P      S T A R T S      H E R E
@@ -182,7 +182,7 @@ int main (int argc, char *argv[])
 
   /* ------------------------------------------------------
      1a. Check if this is the last integration step:
-         - final tstop has been reached: adjust time step 
+         - final tstop has been reached: adjust time step
          - or max number of steps has been reached
      ------------------------------------------------------ */
 
@@ -205,12 +205,12 @@ int main (int argc, char *argv[])
   /* ----------------------------------------------------
      1c. Check if it's time to write or perform analysis
      ---------------------------------------------------- */
-     
+
     if (!first_step && cmd_line.write) {
       if (!last_step) CheckForOutput  (&data, &runtime, tbeg, grd);
       CheckForAnalysis(&data, &runtime, grd);
     }
-    
+
     #ifdef USE_CATALYST
     do_catalyst_execute(g_stepNumber, g_time, grd, &data);
     #endif
@@ -220,9 +220,9 @@ int main (int argc, char *argv[])
          g_dt = dt(n). After this step U^n -> U^{n+1}
      ---------------------------------------------------- */
 
-    if (cmd_line.jet != -1) SetJetDomain (&data, cmd_line.jet, runtime.log_freq, grd); 
+    if (cmd_line.jet != -1) SetJetDomain (&data, cmd_line.jet, runtime.log_freq, grd);
     err = Integrate (&data, &Dts, grd);
-    if (cmd_line.jet != -1) UnsetJetDomain (&data, cmd_line.jet, grd); 
+    if (cmd_line.jet != -1) UnsetJetDomain (&data, cmd_line.jet, grd);
 
   /* ----------------------------------------------------
      1e. Integration didn't go through. Step must
@@ -240,32 +240,32 @@ int main (int argc, char *argv[])
   /* ------------------------------------------------------
      1f. Global MPI reduction operations
      ------------------------------------------------------ */
-    
+
     #ifdef PARALLEL
     MPI_Allreduce (&g_maxMach, &scrh, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     g_maxMach = scrh;
 
     MPI_Allreduce (&g_maxRiemannIter, &nv, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
     g_maxRiemannIter = nv;
-       
+
     #if PHYSICS == ResRMHD
     MPI_Allreduce (&g_maxIMEXIter, &nv, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
     g_maxIMEXIter = nv;
     #endif
     #endif
-    
+
     if (g_stepNumber%runtime.log_freq == 0) {
 
       OutputLogPost(&data, &Dts, &runtime, grd);
-      
+
       LogFileFlush();
-      
+
     }
-    
-    
+
+
   /* ----------------------------------------------------
      1g. Increment time, t(n+1) = t(n) + dt(n)
-     ---------------------------------------------------- */ 
+     ---------------------------------------------------- */
 
     g_time += g_dt;
 
@@ -287,24 +287,24 @@ int main (int argc, char *argv[])
          splitting are used.
      ------------------------------------------------------ */
 
-    //#if (COOLING == NO) 
+    //#if (COOLING == NO)
     g_dt = NextTimeStep(&Dts, &runtime, grd);
     //#else
     //if (g_stepNumber%2 == 1) g_dt = NextTimeStep(&Dts, &runtime, grd);
     //#endif
-    
+
     /* ----------------------------------------------------
      1i. Move cloud and update grid if necessary
-     ---------------------------------------------------- */ 
-    
+     ---------------------------------------------------- */
+
     MoveTrack(&data, grd, &runtime, &cmd_line);
-    
+
     g_stepNumber++;
     first_step = 0;
   }
 
 /* =====================================================================
-          M A I N       L O O P      E N D S       H E R E 
+          M A I N       L O O P      E N D S       H E R E
    ===================================================================== */
 
   /*  Prevent double output when maxsteps == 0 */
@@ -312,7 +312,7 @@ int main (int argc, char *argv[])
     CheckForOutput (&data, &runtime, tbeg, grd);
     CheckForAnalysis (&data, &runtime, grd);
   }
-  
+
   #ifdef USE_CATALYST
   do_catalyst_finalization();
   #endif
@@ -330,10 +330,10 @@ int main (int argc, char *argv[])
   g_dt = difftime(tend, tbeg);
   print ("> Elapsed time             %s\n", TotalExecutionTime(g_dt));
 
-  /*  Check if stepNumber = 0. 
+  /*  Check if stepNumber = 0.
    *  Prevent NaN printLog at maxsteps = 0 */
   if (g_stepNumber > 0)
-      print ("> Average time/step       %10.2e  (sec)  \n", 
+      print ("> Average time/step       %10.2e  (sec)  \n",
                  difftime(tend,tbeg)/(double)g_stepNumber);
   else print ("> Average time/step       %10.2e  (sec)  \n",difftime(tend,tbeg));
 
@@ -358,9 +358,9 @@ int Integrate (Data *d, timeStep *Dts, Grid *grid)
  * \param  d      pointer to PLUTO Data structure;
  * \param  Dts    pointer to time Step structure;
  * \param  grid   pointer to grid structure.
- * 
+ *
  * \return An integer giving success / failure (development).
- * 
+ *
  *********************************************************************** */
 {
   int    idim, err = 0;
@@ -374,14 +374,14 @@ int Integrate (Data *d, timeStep *Dts, Grid *grid)
   g_maxRiemannIter = 0;
   g_maxRootIter    = 0;
 
-  #if COOLING != NO 
-  if ((g_stepNumber-1)%2 == 1){ 
+  #if COOLING != NO
+  if ((g_stepNumber-1)%2 == 1){
   #endif
   DIM_LOOP(idim) Dts->cmax[idim] = 0.0;
   Dts->invDt_hyp       = 0.0;
   Dts->invDt_par       = 0.5e-38;
   Dts->dt_cool         = 1.e38;
-  #if COOLING != NO 
+  #if COOLING != NO
   }
   #endif
 
@@ -417,7 +417,7 @@ int Integrate (Data *d, timeStep *Dts, Grid *grid)
    -------------------------------------------------------- */
 
 #ifdef GLM_MHD  /* -- initialize glm_ch -- */
-  GLM_Init (d, Dts, grid);   
+  GLM_Init (d, Dts, grid);
   GLM_Source (d, 0.5*g_dt, grid);
 #endif
 
@@ -437,7 +437,7 @@ int Integrate (Data *d, timeStep *Dts, Grid *grid)
   }else{
     SplitSource (d, g_dt, Dts, grid);
     if (AdvanceStep (d, Dts, grid) != 0) return(1);
-  }       
+  }
 
 #ifdef GLM_MHD  /* -- GLM source for dt/2 -- */
   GLM_Source (d, 0.5*g_dt, grid);
@@ -450,9 +450,9 @@ int Integrate (Data *d, timeStep *Dts, Grid *grid)
 char *TotalExecutionTime (double dt)
 /*!
  *
- *   convert a floating-point variable (dt, in seconds) to a string 
+ *   convert a floating-point variable (dt, in seconds) to a string
  *   displaying days:hours:minutes:seconds
- *   
+ *
  *********************************************************************** */
 {
   static char c[128];
@@ -579,7 +579,7 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
       (full) and parabolic time steps should not exceed
       runtime->rmax_par.
    -------------------------------------------------------- */
-      
+
 #if (PARABOLIC_FLUX & SUPER_TIME_STEPPING) || \
     (PARABOLIC_FLUX & RK_LEGENDRE)
    dt_par  = runtime->cfl_par/(2.0*Dts->invDt_par);
@@ -601,7 +601,7 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
 
 #if PARTICLES != NO
   #if (PARTICLES == PARTICLES_CR) && (PARTICLES_CR_NSUB > 0)
-  Dts->invDt_particles = MAX(Dts->invDt_particles, Dts->omega_particles);  
+  Dts->invDt_particles = MAX(Dts->invDt_particles, Dts->omega_particles);
   dt_particles = PARTICLES_CR_NSUB/Dts->invDt_particles;
   dtnext       = MIN(dtnext, dt_particles);
   #elif PARTICLES == PARTICLES_DUST
@@ -647,7 +647,7 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
 void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
 /*!
  *  Check if file output has to be performed.
- *  
+ *
  *********************************************************************** */
 {
   static int first_call = 1;
@@ -671,14 +671,14 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
 #ifdef PARALLEL
   MPI_Bcast(dtime, MAX_OUTPUT_TYPES, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
-  
+
 /* --------------------------------------------------------
    1. Start main loop on outputs
    -------------------------------------------------------- */
 
   for (n = 0; n < MAX_OUTPUT_TYPES; n++){
-    output = runtime->output + n;    
-    check_dt = check_dn = check_dclock = 0; 
+    output = runtime->output + n;
+    check_dt = check_dn = check_dclock = 0;
 
   /* ----------------------------------------------------
      1a. Enable writing if  t(n) < t(write) < t(n+1)
@@ -687,7 +687,7 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
     if (output->dt > 0.0){
       check_dt = (int) ((g_time+g_dt)/output->dt) - (int)(g_time/output->dt);
       check_dt = check_dt || first_step || last_step;
-    }   
+    }
 
   /* ----------------------------------------------------
      1b. Enable writing if current step is an integer
@@ -707,7 +707,7 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
       if (dtime[n] >= output->dclock) {
         check_dclock = 1;
         tbeg[n] = tend;
-      }else{ 
+      }else{
         check_dclock = 0;
       }
       check_dclock = check_dclock || first_step || last_step;
@@ -715,7 +715,7 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
 
   /* -- if any of the previous is true dump data to disk -- */
 
-    if (check_dt || check_dn || check_dclock) { 
+    if (check_dt || check_dn || check_dclock) {
 
       #if PARTICLES
       if (  output->type == PARTICLES_DBL_OUTPUT
@@ -726,8 +726,8 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
         Particles_WriteData(d, output, grid);
       } else
       #endif
-      WriteData(d, output, grid);  
-      
+      WriteData(d, output, grid);
+
       #if TRACKING !=NO
       #ifdef USE_HDF5
       if (output->type == DBL_H5_OUTPUT || output->type == FLT_H5_OUTPUT) {
@@ -735,30 +735,30 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
         /* ----------------------------------------------
            3. Write grid.%.4d.out file and restart-data.dat
            ---------------------------------------------- */
-  
+
         if (prank == 0){
           int i;
           char fname[512];
           time_t time_now;
           time(&time_now);
           FILE *fg;
-          
+
           sprintf (fname,"%s/grid.%04d.out", runtime->output_dir, nfile);
           fg = fopen(fname,"w");
           fprintf (fg, "# ******************************************************\n");
-          #ifdef CHOMBO  
+          #ifdef CHOMBO
           fprintf (fg, "# PLUTO-Chombo %s (Base) Grid File\n",PLUTO_VERSION);
           #else
           fprintf (fg, "# PLUTO %s Grid File\n",PLUTO_VERSION);
           #endif
-  
+
           fprintf (fg, "# Generated on  %s",asctime(localtime(&time_now)));
-  
+
           /*    fprintf (fg, "# %s\n", getenv("PWD")); */
-  
+
           fprintf (fg, "# \n");
           fprintf (fg,"# DIMENSIONS: %d\n",DIMENSIONS);
-          #if GEOMETRY == CARTESIAN 
+          #if GEOMETRY == CARTESIAN
           fprintf (fg, "# GEOMETRY:   CARTESIAN\n");
           #elif GEOMETRY == CYLINDRICAL
           fprintf (fg, "# GEOMETRY:   CYLINDRICAL\n");
@@ -770,7 +770,7 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
           int idim, ibeg, iend, ngh;
           DIM_LOOP(idim){
             fprintf (fg, "# X%d: [% f, % f], %d point(s), %d ghosts\n", idim+1,
-                     g_domBeg[idim], g_domEnd[idim], 
+                     g_domBeg[idim], g_domEnd[idim],
                      grid->np_int_glob[idim], grid->nghost[idim]);
           }
           fprintf (fg, "# ******************************************************\n");
@@ -780,18 +780,18 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
             iend = grid->gend[idim];
             fprintf (fg, "%d \n", iend - ibeg + 1);
             for (i = ibeg; i <= iend; i++) {
-              fprintf (fg, " %d   %18.12e    %18.12e\n", 
+              fprintf (fg, " %d   %18.12e    %18.12e\n",
                        i-ngh+1, grid->xl_glob[idim][i], grid->xr_glob[idim][i]);
             }
           }
           fclose(fg);
-        
+
          sprintf (fname,"%s/restart-data.%04d.out", runtime->output_dir, nfile);
          FILE* fr = fopen(fname,"w");
          fprintf(fr, "%lf\n",g_tot_shift_val);
          fprintf(fr, "%lf\n",g_tracking);
          fclose(fr);
-        }         
+        }
       }
       #else
       printLog ("! CheckForOutput: HDF5 library not available\n");
@@ -809,7 +809,7 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
   }
 
 /* -------------------------------------------------------
-   2. Dump restart information if required 
+   2. Dump restart information if required
 
       Note that if both dbl and dbl.h5 formats are used,
       bookeeping is done using dbl format.
@@ -824,7 +824,7 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
 void CheckForAnalysis (Data *d, Runtime *runtime, Grid *grid)
 /*
  *
- * PURPOSE 
+ * PURPOSE
  *
  *   Check if Analysis needs to be called
  *
@@ -836,7 +836,7 @@ void CheckForAnalysis (Data *d, Runtime *runtime, Grid *grid)
   t     = g_time;
   tnext = t + g_dt;
   check_dt = (int) (tnext/runtime->anl_dt) - (int)(t/runtime->anl_dt);
-  check_dt = check_dt || g_stepNumber == 0 || fabs(t - runtime->tstop) < 1.e-9; 
+  check_dt = check_dt || g_stepNumber == 0 || fabs(t - runtime->tstop) < 1.e-9;
   check_dt = check_dt && (runtime->anl_dt > 0.0);
 
   check_dn = (g_stepNumber%runtime->anl_dn) == 0;
@@ -849,23 +849,23 @@ void CheckForAnalysis (Data *d, Runtime *runtime, Grid *grid)
 void MoveTrack (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_line){
 /*
  *
- * PURPOSE 
+ * PURPOSE
  *
  *   Calculate how much a marked region has moved
  *
  ********************************************************************** */
   int k, j, i, nv;
-  
+
   double *r  = grid->x[IDIR];
 
   double xc    = 0., xc_all  = 0.;
   double mass_trc   = 0., mass_trc_all = 0.;
-  
+
   double oth_mu[4];
   double mu     = MeanMolecularWeight((double*)d->Vc, oth_mu);
   double Tcl    = pow(UNIT_VELOCITY/g_inputParam[MACH],2)*(mu*CONST_mp)/(g_gamma*CONST_kB*g_inputParam[CHI]); //in K
   double factor = sqrt(g_inputParam[CHI])/3;
-  
+
   double dV;
   DOM_LOOP(k,j,i){
     dV = grid->dV[k][j][i]; // Cell volume in Spherical
@@ -892,15 +892,15 @@ void MoveTrack (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_line){
   mass_trc_all   = mass_trc;
   #endif
   xc_all /= mass_trc_all;
-  
+
   g_dist_lab = xc_all;  //wind centric position of the cloud
-  
-  #if VERBOSE != NO 
+
+  #if VERBOSE != NO
   #if TRACKING == NO
   printLog("step %d; g_dist_lab = %.2f\n", g_stepNumber, g_dist_lab);
   #endif
   #endif
-  
+
   #if TRACKING != NO
   ApplyTracking(d, grid, runtime, cmd_line);
   #endif

@@ -1,11 +1,11 @@
 /* ///////////////////////////////////////////////////////////////////// */
-/*! 
- *   \file  
+/*!
+ *   \file
  *     \brief cloud tracking by shifting cells using tracer weighted position
  *
- *       \author Alankar Dutta 
+ *       \author Alankar Dutta
  *       \date   Mar 10, 2022
- *               
+ *
  * ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 #include "local_pluto.h"
@@ -16,24 +16,24 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
   double oth_mu[4];
   int yr = 365*24*60*60;
   double mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
-  
+
   double rIni        = g_inputParam[RINI]; // cloud position in units of Rcl
-  double thIni       = g_inputParam[THINI]*CONST_PI/180; 
-  double phiIni      = g_inputParam[PHIINI]*CONST_PI/180; 
+  double thIni       = g_inputParam[THINI]*CONST_PI/180;
+  double phiIni      = g_inputParam[PHIINI]*CONST_PI/180;
   double chi         = g_inputParam[CHI];
   double mach        = g_inputParam[MACH];
-  
+
   double Tcl         = pow(UNIT_VELOCITY/mach,2)*(mu*CONST_mp)/(g_gamma*CONST_kB*chi); //in K
-  
+
   static double cloud_pos;
   double delta = 0.;
-  
+
   if (g_stepNumber==0)
     cloud_pos = g_dist_lab;
-  else 
+  else
     delta = g_dist_lab-cloud_pos; /* g_dist_lab is updated at every step in main.c */
   g_tracking = delta;
-  
+
   static int once = 0;
   if(cmd_line->h5restart == YES && once == 0){
     once = 1;
@@ -62,27 +62,27 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
       QUIT_PLUTO(1);
     }
     FILE *fp;
-    char fname[512]; 
+    char fname[512];
     int dummy;
     double skip;
     sprintf (fname, "%s/restart-data.%04d.out", runtime->output_dir, nrestart);
     //print("Restart shift file: %s\n", fname);
-    fp = fopen(fname, "r"); 
+    fp = fopen(fname, "r");
     dummy = fscanf(fp, "%lf", &skip);
     dummy = fscanf(fp, "%lf", &g_tracking);
     fclose(fp);
     delta = g_tracking;
     cloud_pos = g_dist_lab - delta;
   }
-  
+
   double *r   = grid->x[IDIR];
   double *th  = grid->x[JDIR];
   double *phi = grid->x[KDIR];
-  
+
   double *dr   = grid->dx[IDIR];
   double *dth  = grid->dx[JDIR];
   double *dphi = grid->dx[KDIR];
-  
+
   if ( (g_time<5.0*sqrt(chi) || ( (g_time>10.0*sqrt(chi)) && (g_time<12.0*sqrt(chi)) )) ){
     cloud_pos = g_dist_lab;
     return;
@@ -95,7 +95,7 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
       return;
     }
   }
-  /* Assuming uniform grid */ 
+  /* Assuming uniform grid */
   int shift_cells = 0;
   if (delta >= 0)
     shift_cells =  (int)floor(delta/dr[IBEG]) ; // Cloud movement: pos: --> right & neg: <-- left
@@ -114,47 +114,47 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
       return;
     }
   }
-  
+
   if (switch_tracking==0) return;
   */
   if (fabs(shift_cells)<shift_thres) return;
   #if VERBOSE != NO
-  else 
+  else
     printLog("step:%d; Applying cloud tracking: cells_shift=%d; shift_thres=%d\n",g_stepNumber, shift_cells, shift_thres);
   #endif
-  
+
   double shift_val = shift_cells*dr[IBEG]; //uniform grid assumption
   cloud_pos += shift_val; //this auto corrects the small overshoot in the next step
-  
+
   //printLog("Shift val = %lf\tTotal Shift val = %lf\n", shift_val, g_tot_shift_val);
   g_tot_shift_val = g_tot_shift_val + shift_val;
-  
+
   grid->xbeg[IDIR] += shift_val;
   grid->xend[IDIR] += shift_val;
   grid->xbeg_glob[IDIR] += shift_val;
   grid->xend_glob[IDIR] += shift_val;
   g_domBeg[IDIR] += shift_val;
   g_domEnd[IDIR] += shift_val;
-  
-  ITOT_LOOP(i) {  
+
+  ITOT_LOOP(i) {
     grid->x[IDIR][i] += shift_val;
     //grid->x_glob[IDIR][i] += shift_val;
     grid->xr[IDIR][i] += shift_val;
     //grid->xr_glob[IDIR][i] += shift_val;
     grid->xl[IDIR][i] += shift_val;
     //grid->xl_glob[IDIR][i] += shift_val;
-    //grid->xgc[IDIR][i] += shift_val;  
+    //grid->xgc[IDIR][i] += shift_val;
     //grid->rt[i] += shift_val;
   }
   SetGeometry(grid);
-  
+
   #if VERBOSE != NO
   printLog("step:%d; Done updating grid!\n",g_stepNumber);
-  #endif 
-      
+  #endif
+
   TOT_LOOP(k,j,i){
-    if(shift_cells>0){ //cloud moving to right    
-      
+    if(shift_cells>0){ //cloud moving to right
+
       if (i<=(NX1_TOT-1-shift_cells)) {
         NVAR_LOOP(nv) {
           d->Vc[nv][k][j][i] = d->Vc[nv][k][j][i+shift_cells];
@@ -180,16 +180,16 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
     RBoxDefine (i, i, j, j, k, k, CENTER, &dom_box);
     PrimToCons3D(d->Vc, d->Uc, &dom_box);
   }
-  
-  
+
+
   #if PARTICLES != NO
   particleNode *curr, *next;
   Particle *p;
   int dir;
   curr = d->PHead;
   while (curr != NULL) {  /* Do not use macro looping here  */
-    p    = &(curr->p);  
-    next = curr->next; 
+    p    = &(curr->p);
+    next = curr->next;
     //p->coord[0] -= (shift_cells*dx[IBEG]); //uniform grid assumption
     curr = next;
   }

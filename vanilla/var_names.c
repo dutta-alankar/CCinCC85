@@ -1,7 +1,7 @@
 /* ///////////////////////////////////////////////////////////////////// */
-/*! 
-  \file  
-  \brief Set default variable names. 
+/*!
+  \file
+  \brief Set default variable names.
 
   Create a correspondence between the index of a variable (e.g., RHO, VX1,
   etc...) and its actual name (e.g., "rho", "vx1", etc...).
@@ -26,29 +26,29 @@ void SetDefaultVarNames(Output *output)
   int nv;
 
 /* ----------------------------------------------
-    Physics module file names; 
+    Physics module file names;
     these pertain to the physics module ONLY
    ---------------------------------------------- */
    strcpy(output->var_name[RHO], "density");
   #if GEOMETRY == SPHERICAL
-  strcpy(output->var_name[iVR],   "vr"); 
-  strcpy(output->var_name[iVTH],  "vth"); 
+  strcpy(output->var_name[iVR],   "vr");
+  strcpy(output->var_name[iVTH],  "vth");
   strcpy(output->var_name[iVPHI], "vphi");
   #else
-  strcpy(output->var_name[VX1], "vx1"); 
-  strcpy(output->var_name[VX2], "vx2"); 
+  strcpy(output->var_name[VX1], "vx1");
+  strcpy(output->var_name[VX2], "vx2");
   strcpy(output->var_name[VX3], "vx3");
   #endif
   #if HAVE_ENERGY
   strcpy(output->var_name[PRS], "pressure");
   #endif
-  
+
   #if PHYSICS == MHD || PHYSICS == RMHD || PHYSICS == ResRMHD
-  strcpy(output->var_name[BX1], "Bx1"); 
-  strcpy(output->var_name[BX2], "Bx2"); 
+  strcpy(output->var_name[BX1], "Bx1");
+  strcpy(output->var_name[BX2], "Bx2");
   strcpy(output->var_name[BX3], "Bx3");
   #endif
-  
+
   #if PHYSICS == ResRMHD
   strcpy(output->var_name[EX1], "Ex1");
   strcpy(output->var_name[EX2], "Ex2");
@@ -66,7 +66,7 @@ void SetDefaultVarNames(Output *output)
   strcpy(output->var_name[PHI_GLM], "phi_glm");
   #endif
   #endif
- 
+
 /* ----------------------------------------------
     Dust
    ---------------------------------------------- */
@@ -77,7 +77,7 @@ void SetDefaultVarNames(Output *output)
   strcpy(output->var_name[VX2_D], "vx2_d");
   strcpy(output->var_name[VX3_D], "vx3_d");
 #endif
-    
+
 /* ----------------------------------------------
     Radiation
    ---------------------------------------------- */
@@ -90,7 +90,7 @@ void SetDefaultVarNames(Output *output)
 #endif
 
 /* ----------------------------------------------
-                   Tracers 
+                   Tracers
    ---------------------------------------------- */
 
   NTRACER_LOOP(nv) sprintf (output->var_name[nv],"tr%d",nv - TRC + 1);
@@ -105,7 +105,7 @@ void SetDefaultVarNames(Output *output)
 
 #if COOLING == MINEq
   {
-    static char *ion_name[] = {"X_HI", "X_HeI", "X_HeII" 
+    static char *ion_name[] = {"X_HI", "X_HeI", "X_HeII"
                         C_EXPAND("X_CI","X_CII", "X_CIII", "X_CIV", "X_CV")
                         N_EXPAND("X_NI","X_NII", "X_NIII", "X_NIV", "X_NV")
                         O_EXPAND("X_OI","X_OII", "X_OIII", "X_OIV", "X_OV")
@@ -123,7 +123,7 @@ void SetDefaultVarNames(Output *output)
   {
     static char *molnames[] = {"X_HI", "X_H2", "X_HII"};
     NIONS_LOOP(nv) strcpy(output->var_name[nv], molnames[nv-NFLX]);
-  } 
+  }
 
 #elif COOLING == KROME
   /* kromenames are reaction network dependent and are defined in cooling.h */

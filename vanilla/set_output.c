@@ -2,33 +2,33 @@
 /*!
   \file
   \brief Set/retrieve output data attributes.
-  
-  The function SetOutput() sets, for each output data type (DBL, FLT, 
+
+  The function SetOutput() sets, for each output data type (DBL, FLT,
   VTK etc..) the default attributes of the corresponding ::Output structures.
-  These include the variable name, a pointer to the actual 
-  3D array, the centering of the variable (center/staggered), a 
+  These include the variable name, a pointer to the actual
+  3D array, the centering of the variable (center/staggered), a
   conditional inclusion flag (telling if the corresponding variable has
   to be written in the specified format), and so on.
-  
-  The function SetOutputVar() can be used to include or exclude a given 
+
+  The function SetOutputVar() can be used to include or exclude a given
   variable to be written using a particular output format.
-  
-  The function GetUserVar() returns the memory address to a 
+
+  The function GetUserVar() returns the memory address to a
   user-defined 3D array.
 
-  \note Starting with PLUTO 4.1 velocity and magnetic field components 
-        will be saved as scalars when writing VTK output. 
-        If this is not what you want and prefer to save them as vector 
+  \note Starting with PLUTO 4.1 velocity and magnetic field components
+        will be saved as scalars when writing VTK output.
+        If this is not what you want and prefer to save them as vector
         fields (VTK VECTOR attribute), set VTK_VECTOR_DUMP to YES
-        in your definitions.h.        
-  
+        in your definitions.h.
+
   \authors A. Mignone (mignone@to.infn.it)
   \date    June 24, 2019
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#ifndef VTK_VECTOR_DUMP  
+#ifndef VTK_VECTOR_DUMP
  #define VTK_VECTOR_DUMP NO
 #endif
 
@@ -36,7 +36,7 @@ static Output *all_outputs;
 /* ********************************************************************* */
 void SetOutput (Data *d, Runtime *runtime)
 /*!
- *  Set default attributes (variable names, pointers to data structures, 
+ *  Set default attributes (variable names, pointers to data structures,
  *  filename extensions, etc...) of the output structures.
  *
  * \param [in] d        pointer to Data structure
@@ -55,16 +55,16 @@ void SetOutput (Data *d, Runtime *runtime)
   all_outputs = runtime->output;
 
 /* ----------------------------------------------
-   1. Loop on output types 
+   1. Loop on output types
    ---------------------------------------------- */
 
   for (k = 0; k < MAX_OUTPUT_TYPES; k++){
-    
+
     output = runtime->output + k;
     output->var_name = ARRAY_2D(128, 32,char);
     strcpy(output->dir, runtime->output_dir); /* output directory is the same     */
                                               /* for all outputs (easy to change) */
-    output->nfile    = -1;  
+    output->nfile    = -1;
 
   /* --------------------------------------------
      1a. Exclude particle outputs
@@ -91,60 +91,60 @@ void SetOutput (Data *d, Runtime *runtime)
 
     NVAR_LOOP(nv){
       output->V[nv]        = d->Vc[nv];
-      output->stag_var[nv] = -1; /* -- means cell centered -- */ 
+      output->stag_var[nv] = -1; /* -- means cell centered -- */
     }
-    
+
   /* --------------------------------------------
      1d. Add staggered fields, vector potential
      -------------------------------------------- */
-    
+
     nv = NVAR;
     #ifdef STAGGERED_MHD
     DIM_EXPAND(
-      strcpy(output->var_name[nv], "Bx1s"); 
-      output->V[nv]          = d->Vs[BX1s]; 
+      strcpy(output->var_name[nv], "Bx1s");
+      output->V[nv]          = d->Vs[BX1s];
       output->stag_var[nv++] = 0;           ,
 
-      strcpy(output->var_name[nv], "Bx2s"); 
-      output->V[nv]          = d->Vs[BX2s]; 
+      strcpy(output->var_name[nv], "Bx2s");
+      output->V[nv]          = d->Vs[BX2s];
       output->stag_var[nv++] = 1;           ,
 
-      strcpy(output->var_name[nv], "Bx3s"); 
-      output->V[nv]          = d->Vs[BX3s]; 
-      output->stag_var[nv++] = 2; 
+      strcpy(output->var_name[nv], "Bx3s");
+      output->V[nv]          = d->Vs[BX3s];
+      output->stag_var[nv++] = 2;
     )
 
     #if (PHYSICS == ResRMHD) && (DIVE_CONTROL == CONSTRAINED_TRANSPORT)
     DIM_EXPAND(
-      strcpy(output->var_name[nv], "Ex1s"); 
-      output->V[nv]          = d->Vs[EX1s]; 
+      strcpy(output->var_name[nv], "Ex1s");
+      output->V[nv]          = d->Vs[EX1s];
       output->stag_var[nv++] = 0;           ,
 
-      strcpy(output->var_name[nv], "Ex2s"); 
-      output->V[nv]          = d->Vs[EX2s]; 
+      strcpy(output->var_name[nv], "Ex2s");
+      output->V[nv]          = d->Vs[EX2s];
       output->stag_var[nv++] = 1;           ,
 
-      strcpy(output->var_name[nv], "Ex3s"); 
-      output->V[nv]          = d->Vs[EX3s]; 
-      output->stag_var[nv++] = 2; 
+      strcpy(output->var_name[nv], "Ex3s");
+      output->V[nv]          = d->Vs[EX3s];
+      output->stag_var[nv++] = 2;
     )
     #endif
     #endif
 
     #if UPDATE_VECTOR_POTENTIAL == YES
-     #if DIMENSIONS == 3   
+     #if DIMENSIONS == 3
       strcpy(output->var_name[nv], "Ax1");
       output->V[nv]          = d->Ax1;
-      output->stag_var[nv++] = -1;  /* -- vector potential is 
+      output->stag_var[nv++] = -1;  /* -- vector potential is
                                           computed at cell center -- */
 
       strcpy(output->var_name[nv], "Ax2");
       output->V[nv]          = d->Ax2;
-      output->stag_var[nv++] = -1;  
+      output->stag_var[nv++] = -1;
      #endif
      strcpy(output->var_name[nv], "Ax3");
      output->V[nv]          = d->Ax3;
-     output->stag_var[nv++] = -1;  
+     output->stag_var[nv++] = -1;
     #endif
     output->nvar = nv;
 
@@ -161,7 +161,7 @@ void SetOutput (Data *d, Runtime *runtime)
   /* -- Update total number of variables -- */
 
     output->nvar += runtime->user_var;
- 
+
   /* --------------------------------------------
      1f. select which variables are going to be
          dumped to disk
@@ -210,27 +210,27 @@ void SetOutput (Data *d, Runtime *runtime)
         for (nv = output->nvar; nv--; ) output->dump_var[nv] = NO;
         break;
     }
-    
+
   /* ---------------------------------------------------------------
       for divergence cleaning never dump the scalar psi unless
       the output type can be potentially used for restart
      --------------------------------------------------------------- */
-   
+
     #ifdef GLM_MHD
      if (output->type == DBL_OUTPUT || output->type == DBL_H5_OUTPUT) {
        output->dump_var[PSI_GLM] = YES;
        #ifdef PHI_GLM
        output->dump_var[PHI_GLM] = YES;
-       #endif       
+       #endif
      } else {
        output->dump_var[PSI_GLM] = NO;
        #ifdef PHI_GLM
        output->dump_var[PHI_GLM] = NO;
-       #endif       
+       #endif
      }
     #endif
   }
- 
+
 /* -- Exclude staggered components from all output except .dbl and .h5.dbl -- */
 
   #ifdef STAGGERED_MHD
@@ -260,39 +260,39 @@ void SetOutput (Data *d, Runtime *runtime)
              SetOutputVar ("Ex2s", TAB_OUTPUT, NO);  ,
              SetOutputVar ("Ex3s", TAB_OUTPUT, NO);)
   #endif
-  
+
   #endif
 
 /* -- defaults: dump density only in ppm and png formats -- */
 
   SetOutputVar ("density", PPM_OUTPUT, YES);
   SetOutputVar ("density", PNG_OUTPUT, YES);
-  
+
 }
 
 /* ********************************************************************* */
 int SetOutputVar (char *var_name, int output_type, int flag)
 /*!
  *  Include ('flag == YES') or exclude ('flag == NO') the variable
- *  corresponding to 'var_name' in or from the output type 'out_type'. 
+ *  corresponding to 'var_name' in or from the output type 'out_type'.
  *  If 'out_type' corresponds to an image (ppm or png), create a
  *  correspdonding Image structure.
  *
  * \param [in] var_name     the name of the variable (e.g. "density",...)
- * \param [in] output_type  select the output type (e.g., DBL_OUTPUT, 
+ * \param [in] output_type  select the output type (e.g., DBL_OUTPUT,
  *                          VTK_OUTPUT, and so forth)
- * \param [in] flag         an integer values (YES/NO).      
+ * \param [in] flag         an integer values (YES/NO).
  *********************************************************************** */
 {
   int k, nv;
   Output *output;
 
-  for (k = 0; k < MAX_OUTPUT_TYPES; k++){ 
+  for (k = 0; k < MAX_OUTPUT_TYPES; k++){
     output = all_outputs + k;
     if (output->type == output_type) break;
   }
 
-  for (nv = output->nvar; nv--; ) { 
+  for (nv = output->nvar; nv--; ) {
     if (strcmp(output->var_name[nv], var_name) == 0) {
       output->dump_var[nv] = flag;
       if (flag == YES){
@@ -326,7 +326,7 @@ int GetOutputVarNames(int output_type, char *var_name[NVAR])
   int k, nv, count = 0;
   Output *output;
 
-  for (k = 0; k < MAX_OUTPUT_TYPES; k++){ 
+  for (k = 0; k < MAX_OUTPUT_TYPES; k++){
     output = all_outputs + k;
     if (output->type == output_type) break;
   }
@@ -340,17 +340,17 @@ int GetOutputVarNames(int output_type, char *var_name[NVAR])
 
 /* ********************************************************************* */
 double ***GetUserVar (char *var_name)
-/*! 
- *  return a pointer to the 3D array associated with the 
+/*!
+ *  return a pointer to the 3D array associated with the
  *  variable named 'var_name'.
  *
  *********************************************************************** */
 {
   int indx = -1;
-  
+
   while (strcmp(all_outputs->var_name[++indx], var_name)){
     if (all_outputs->V[indx] == NULL){
-      printLog ("! GetUserVar(): uservar '%s' is not allocated\n"); 
+      printLog ("! GetUserVar(): uservar '%s' is not allocated\n");
       QUIT_PLUTO(1);
     }
   }
