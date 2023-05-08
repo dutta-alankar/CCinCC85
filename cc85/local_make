@@ -12,7 +12,7 @@
 
  # INCLUDE_DIRS += -I/u/adutt/comp_libs/catalyst/include/catalyst-2.0
  # LDFLAGS      += -L/u/adutt/comp_libs/catalyst/lib64 -lcatalyst
- # CFLAGS       += -DUSE_CATALYST #-DCATALYST_VERBOSE
+ # CFLAGS       += -DUSE_CATALYST # -DCATALYST_VERBOSE
  # CFLAGS       += -DPARAVIEW_IMPL_DIR=\"/mpcdf/soft/SLE_15/packages/x86_64/paraview/5.10.1/lib/catalyst/\"
 
  CFLAGS        += -DPYTHON_LOC=\"../.venv/bin/python\"
