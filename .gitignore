@@ -233,3 +233,9 @@ cc85/definitions.h
 cc85/pluto.ini
 cc85/CatalystAdaptor.h
 cc85/output
+
+vanilla/makefile
+vanilla/definitions.h
+vanilla/pluto.ini
+vanilla/CatalystAdaptor.h
+vanilla/output
