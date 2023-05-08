@@ -50,3 +50,22 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# VSCode
+.code
+
+# Virtual env
+.venv
+
+# output dumps and PLUTO specific files
+*.vtk
+*.h5
+*.xmf
+*.out
+PLUTO/
+
+cc85/makefile
+cc85/definitions.h
+cc85/pluto.ini
+cc85/CatalystAdaptor.h
+cc85/output
