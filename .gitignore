@@ -226,6 +226,7 @@ cython_debug/
 *.log
 *.err
 PLUTO/
+pluto
 
 cc85/makefile
 cc85/definitions.h
