@@ -37,7 +37,7 @@ Nth    = int(np.ceil((thend-thbeg)/dth))
 Nph    = Nth
 
 cfl    = 0.2
-tstop  = 5.0*tcc*np.sqrt(chi)
+tstop  = 4.0*tcc*np.sqrt(chi)
 dt_ini = 1.e-8
 dt_analysis = 1e-1*tcc
 
@@ -93,8 +93,8 @@ log_dir    {log_dir}
 dbl       -1.0          -1   single_file
 flt       -1.0          -1   single_file
 vtk       -1.0          -1   single_file
-flt.h5    -1.0          -1   single_file
-dbl.h5    {2.0*tcc:<8.2e}      -1   single_file
+dbl.h5    -1.0          -1   single_file
+flt.h5    {1.0*tcc:<8.2e}      -1   single_file
 tab       -1.0          -1
 ppm       -1.0          -1
 png       -1.0          -1

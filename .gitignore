@@ -225,6 +225,8 @@ cython_debug/
 *.out
 *.log
 *.err
+*.png
+*.dat
 PLUTO/
 pluto
 
