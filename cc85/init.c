@@ -352,24 +352,30 @@ void Analysis (const Data *d, Grid *grid)
     sprintf(buffer1, "M(rho>rho_cl/%.1f)/M0", factor);
     sprintf(buffer2, "M(T<%.1f*T_cl)/M0", factor);
     char *trc_cut_buffer[(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0]))];
+
     for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
-      char *dummy1, *dummy2;
+      char *dummy1 = (char *)malloc(256*sizeof(char));
+      char *dummy2 = (char *)malloc(256*sizeof(char));
+      trc_cut_buffer[cold_indx] = (char *)malloc(256*sizeof(char));
       strcpy(dummy1, buffer2);
       sprintf(dummy2, " [trc>%.1e]", tracer_cut[cold_indx]);
       strcat(dummy1, dummy2);
       strcpy(trc_cut_buffer[cold_indx], dummy1);
     }
+
     FILE *fp;
     sprintf (fname, "%s/analysis.dat",RuntimeGet()->output_dir);
     if (g_stepNumber == 0){ /* Open for writing only when we are starting */
       fp = fopen(fname,"w"); /* from beginning */
       fprintf (fp,"#%s\t=\t%.5e\n", "tcc (code)", tcc);
-      fprintf (fp,"#%s\t\t%s\t%s\t\t%s\t\t%s\t\t", //%s\t\t%s\n",
+      // Header
+      fprintf (fp,"#(1)%s\t\t(2)%s\t(3)%s\t\t(4)%s\t\t(5)%s\t\t", //%s\t\t%s\n",
                "time (code)", "g_dist_lab (code)", "v_cloud (code)", "trc/trc0", buffer1); //, buffer2, "dt (code)");
+      int cont = 5;
       for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
-        fprintf(fp,"%s\t\t", trc_cut_buffer[cold_indx]);
+        fprintf(fp,"(%d)%s\t\t", ++cont, trc_cut_buffer[cold_indx]);
       }
-      fprintf (fp, "dt (code)\n");
+      fprintf (fp, "(%d)dt (code)\n", ++cont);
       fclose(fp);
     }
     /* Append numeric data */

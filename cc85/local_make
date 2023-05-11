@@ -1,7 +1,15 @@
+ifeq ($(strip $(PARALLEL)), TRUE)
  LDFLAGS      += -L/modules/comp_libs/hdf5/parallel/lib -lhdf5 -lz
- CFLAGS       += -DUSE_HDF5 # -DH5_USE_16_API
- OBJ          += hdf5_io.o
  INCLUDE_DIRS += -I/modules/comp_libs/hdf5/parallel/include
+endif
+
+ifeq ($(strip $(PARALLEL)), FALSE)
+ LDFLAGS      += -L/modules/comp_libs/hdf5/serial/lib -lhdf5 -lz
+ INCLUDE_DIRS += -I/modules/comp_libs/hdf5/serial/include
+endif
+
+ CFLAGS       += -g -DUSE_HDF5 # -DH5_USE_16_API
+ OBJ          += hdf5_io.o
 
  OBJ          += tracking.o
  OBJ          += wind.o
