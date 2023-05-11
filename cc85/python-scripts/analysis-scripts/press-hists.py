@@ -69,97 +69,97 @@ for snap in range(tot_snap):
         x = np.array(data['/cell_coords/X']).flatten()
         y = np.array(data['/cell_coords/Y']).flatten()
         z = np.array(data['/cell_coords/Z']).flatten()
-        
+
         distance = np.sqrt(x**2 + y**2 + z**2)
         rad_pnts = 100
         radius = np.linspace(0.98*np.min(distance), 1.02*np.max(distance), rad_pnts+1)
 
         cond_cold_gas = temperature<(3.3*Tcl)
-        
+
         cold_gas_prs_by_prs_cold_avg = []
         hot_gas_prs_by_prs_hot_avg = []
-        
+
         cold_gas_prs_by_prs_all_avg = []
         hot_gas_prs_by_prs_all_avg = []
-        
-        dV_cold = [] 
+
+        dV_cold = []
         dV_hot  = []
-        
+
         prs_hot_avg  = np.zeros(radius.shape[0]-1)
         prs_cold_avg = np.zeros_like(prs_hot_avg)
         prs_all_avg  = np.zeros_like(prs_hot_avg)
-        
+
         for indx, rad in enumerate(radius[:-1]):
             select = np.logical_and(distance>rad, distance<radius[indx+1])
             select_hot  = np.logical_and(np.logical_not(cond_cold_gas),select)
             select_cold = np.logical_and(np.logical_and(cond_cold_gas, select), tracer>1e-4)
             hot_gas_prs  = pres[select_hot]
             cold_gas_prs = pres[select_cold]
-            
+
             if (np.count_nonzero(select)>0):
                 prs_all_avg[indx] = np.average(pres[select], weights=dV[select])
-                
+
             if (np.count_nonzero(select_hot) > 0):
                 prs_hot_avg[indx] = np.average(hot_gas_prs, weights=dV[select_hot])
-                
+
                 hot_gas_prs_by_prs_hot_avg.append( hot_gas_prs  / prs_hot_avg[indx] )
                 hot_gas_prs_by_prs_all_avg.append( hot_gas_prs /  prs_all_avg[indx] )
-                
+
                 dV_hot.append(dV[select_hot])
-                
+
             if (np.count_nonzero(select_cold) > 0) :
                 prs_cold_avg[indx] = np.average(cold_gas_prs, weights=dV[select_cold])
-                
+
                 cold_gas_prs_by_prs_cold_avg.append( cold_gas_prs / prs_cold_avg[indx] )
                 cold_gas_prs_by_prs_all_avg.append( cold_gas_prs / prs_all_avg[indx] )
-                
+
                 dV_cold.append(dV[select_cold])
-        
+
         cold_gas_prs_by_prs_cold_avg = np.array(list(chain.from_iterable(cold_gas_prs_by_prs_cold_avg)))
         hot_gas_prs_by_prs_hot_avg = np.array(list(chain.from_iterable(hot_gas_prs_by_prs_hot_avg)))
-        
+
         cold_gas_prs_by_prs_all_avg = np.array(list(chain.from_iterable(cold_gas_prs_by_prs_all_avg)))
         hot_gas_prs_by_prs_all_avg = np.array(list(chain.from_iterable(hot_gas_prs_by_prs_all_avg)))
-        
+
         dV_hot  = np.array(list(chain.from_iterable(dV_hot)))
         dV_cold = np.array(list(chain.from_iterable(dV_cold)))
-        
+
         plt.figure(figsize=(13,10))
-        plt.hist(hot_gas_prs_by_prs_hot_avg, 
-                 bins=100, 
-                 weights=dV_hot, 
-                 density=True, 
+        plt.hist(hot_gas_prs_by_prs_hot_avg,
+                 bins=100,
+                 weights=dV_hot,
+                 density=True,
                  color='tab:red', label='Hot gas')
-        
-        plt.hist(cold_gas_prs_by_prs_cold_avg, 
-                bins=100, 
-                weights=dV_cold, 
-                density=True, 
-                color='tab:blue', alpha=0.5, label='Cold gas') 
+
+        plt.hist(cold_gas_prs_by_prs_cold_avg,
+                bins=100,
+                weights=dV_cold,
+                density=True,
+                color='tab:blue', alpha=0.5, label='Cold gas')
         plt.title(r"$t/t_{cc} \approx %d$"%tcc[snap])
         plt.legend(loc="best")
         plt.yscale('log')
         plt.savefig(f"./pres-hists/local_{snap:04d}.png", transparent=False)
         plt.close()
-        
+
         plt.figure(figsize=(13,10))
-        plt.hist(hot_gas_prs_by_prs_all_avg, 
-                 bins=100, 
-                 weights=dV_hot, 
-                 density=True, 
+        plt.hist(hot_gas_prs_by_prs_all_avg,
+                 bins=100,
+                 weights=dV_hot,
+                 density=True,
                  color='tab:red', label='Hot gas')
-        
-        plt.hist(cold_gas_prs_by_prs_all_avg, 
-                bins=100, 
-                weights=dV_cold, 
-                density=True, 
-                color='tab:blue', alpha=0.5, label='Cold gas') 
+
+        plt.hist(cold_gas_prs_by_prs_all_avg,
+                bins=100,
+                weights=dV_cold,
+                density=True,
+                color='tab:blue', alpha=0.5, label='Cold gas')
         plt.title(r"$t/t_{cc} \approx %d$"%tcc[snap])
         plt.legend(loc="best")
         plt.yscale('log')
         plt.savefig(f"./pres-hists/global_{snap:04d}.png", transparent=False)
         plt.close()
-        
+
         plt.figure(figsize=(13,10))
         plt.plot(radius[:-1], prs_hot_avg/prs_all_avg, label="Hot gas")
         plt.plot(radius[:-1], prs_cold_avg/prs_all_avg, label="Cold gas")
@@ -169,7 +169,7 @@ for snap in range(tot_snap):
         plt.legend(loc="best")
         plt.savefig(f"./pres-hists/pres-prof_{snap:04d}.png", transparent=False)
         plt.close()
-        
+
         plt.figure(figsize=(13,10))
         plt.semilogy(radius[:-1], prs_hot_avg, label="Hot gas")
         plt.semilogy(radius[:-1], prs_cold_avg, label="Cold gas")
@@ -179,5 +179,3 @@ for snap in range(tot_snap):
         plt.legend(loc="best")
         plt.savefig(f"./pres-hists/pres-prof_{snap:04d}.png", transparent=False)
         plt.close()
-
-        

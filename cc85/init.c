@@ -275,14 +275,14 @@ void Analysis (const Data *d, Grid *grid)
   double mass_dense = 0., mass_dense_all  = 0.;
   double vr_cloud = 0., vt_cloud = 0., vp_cloud = 0.;
   double vr_cloud_all = 0., vt_cloud_all = 0., vp_cloud_all = 0.;
-  
+
   double mass_cold[(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0]))];
   double mass_cold_all[(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0]))];
   for (i=0; i<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); i++){
     mass_cold[i] = 0.;
     mass_cold_all[i] = 0.;
   }
-  
+
   double dV;
   int cold_indx;
   DOM_LOOP(k,j,i){
@@ -374,7 +374,7 @@ void Analysis (const Data *d, Grid *grid)
     }
     /* Append numeric data */
     fp = fopen(fname,"a");
-    fprintf (fp, "%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t\t", 
+    fprintf (fp, "%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t\t",
              g_time, g_dist_lab, v_cloud, trc_all, mass_dense_all);
     for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
       fprintf (fp, "%12.6e\t\t\t", mass_cold_all[cold_indx]);
