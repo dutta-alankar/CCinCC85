@@ -309,14 +309,14 @@ void Analysis (const Data *d, Grid *grid)
   int transfer_size = 6 + (int)(sizeof(tracer_cut) / sizeof(tracer_cut[0]));
   int transfer = 0;
   double sendArray[transfer_size], recvArray[transfer_size];
-  sendArray[transfer++] = trc; sendArray[transfer++] = mass_dense;
+  sendArray[transfer++] = trc; sendArray[transfer++] = mass_dense; sendArray[transfer++] = mass_cloud;
   for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
     sendArray[transfer++] = mass_cold[cold_indx];
   }
   sendArray[transfer++] = vr_cloud; sendArray[transfer++] = vt_cloud; sendArray[transfer++] = vp_cloud;
-  MPI_Allreduce (sendArray, recvArray, transfer_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // TODO: Replace this with reduce to improve on communication overhead
+  MPI_Allreduce (sendArray, recvArray, transfer_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // TODO: Replace this with Allreduce to improve on communication overhead
   transfer = 0;
-  trc_all = recvArray[transfer++]; mass_cloud_all = recvArray[transfer++]; mass_dense_all = recvArray[transfer++];
+  trc_all = recvArray[transfer++]; mass_dense_all = recvArray[transfer++]; mass_cloud_all = recvArray[transfer++];
   for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
     mass_cold_all[cold_indx] = recvArray[transfer++];
   }
@@ -324,8 +324,8 @@ void Analysis (const Data *d, Grid *grid)
 
   #else
   trc_all    = trc;
-  mass_cloud_all = mass_cloud;
   mass_dense_all = mass_dense;
+  mass_cloud_all = mass_cloud;
   for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
     mass_cold_all[cold_indx] = mass_cold[cold_indx];
   }
@@ -336,7 +336,7 @@ void Analysis (const Data *d, Grid *grid)
   vr_cloud_all = vr_cloud_all/mass_cloud_all;
   vt_cloud_all = vt_cloud_all/mass_cloud_all;
   vp_cloud_all = vp_cloud_all/mass_cloud_all;
-  trc_all     = trc_all/trc0_all;
+  trc_all     = trc_all/trc0_all; // trc0_all is M_cloud, ini
   mass_dense_all = mass_dense_all/trc0_all;
   for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
     mass_cold_all[cold_indx] = mass_cold_all[cold_indx]/trc0_all;
