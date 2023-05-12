@@ -66,7 +66,7 @@ for snap in range(tot_snap):
         temperature = np.array(data[f'/Timestep_{snap}/vars/temperature']).flatten()
         ndens = np.array(data[f'/Timestep_{snap}/vars/ndens']).flatten()
         tracer = np.array(data[f'/Timestep_{snap}/vars/tr1']).flatten()
-        
+
         mass = ndens*dV
 
         cond_cold_gas = temperature<(3.3*Tcl)
@@ -75,21 +75,20 @@ for snap in range(tot_snap):
         max_trc = np.max(tracer)
         print(med_trc, std_trc, max_trc)
         select_cold_cloud = np.logical_and(cond_cold_gas, tracer>=0.6*max_trc) #np.abs(tracer-med_trc)>=2*std_trc)
-        
+
         cold_gas_mass = np.sum(ndens[select_cold_cloud]*dV[select_cold_cloud])
-        
+
         Mass_cloud[snap] = cold_gas_mass
-        
+
         print(Mass_cloud[snap])
-        
-np.savetxt(f"{out_dir}/mass-cold-cloud.txt", 
-           np.vstack( (tcc, Mass_cloud/Mass_cloud[0]) ).T, 
-           fmt="%.6e", header="# tcc\tM_cold_cloud/M0")  
+
+np.savetxt(f"{out_dir}/mass-cold-cloud.txt",
+           np.vstack( (tcc, Mass_cloud/Mass_cloud[0]) ).T,
+           fmt="%.6e", header="# tcc\tM_cold_cloud/M0")
 
 plt.figure(figsize=(13,10))
 plt.semilogy(tcc, Mass_cloud/Mass_cloud[0])
 plt.xlabel(r"time [$t_{cc}$]")
 plt.ylabel(r"Mass_cloud [$M_0$]")
 plt.savefig(f"./{out_dir}/cold-cloud-mass.png", transparent=False)
-plt.close()      
-        
+plt.close()
