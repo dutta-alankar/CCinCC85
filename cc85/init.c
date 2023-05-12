@@ -207,7 +207,7 @@ void Analysis (const Data *d, Grid *grid)
   static int first = 0;
   static long int nstep = -1;
   double tracer_cut[] = {1.0e-04, 1.0e-02, 1.0e-01, 2.0e-01, 5.0e-01};
-  double rho_cut[] = {1.0, 2.0, 3.0, 5.0, 10.0};
+  double rho_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
 
   double *r  = grid->x[IDIR];
   double tanl;
@@ -305,10 +305,10 @@ void Analysis (const Data *d, Grid *grid)
     if(d->Vc[RHO][k][j][i] >= (rho_cl/factor))
       mass_dense += d->Vc[RHO][k][j][i]*dV;
     // double temp_cut = 1.2e5;
+    distance = r[i];
+    rByrInj  = (distance/rIni)*rIniByrInj;
+    rho_wind = CC85rho(rByrInj)/CC85rho(rIniByrInj);
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++){
-      distance = r[i];
-      rByrInj  = (distance/rIni)*rIniByrInj;
-      rho_wind = CC85rho(rByrInj)/CC85rho(rIniByrInj);
       if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx]))
         mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
     }
@@ -394,7 +394,7 @@ void Analysis (const Data *d, Grid *grid)
 
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
       cloud_header[cloud_indx] = (char *)malloc(256*sizeof(char));
-      sprintf(cloud_header[cloud_indx], "M (rho(r)>%.1e rho_w(r))/M0", rho_cut[cloud_indx]);
+      sprintf(cloud_header[cloud_indx], "M (rho(r)>=%.1f rho_w(r))/M0", rho_cut[cloud_indx]);
     }
 
     FILE *fp;
