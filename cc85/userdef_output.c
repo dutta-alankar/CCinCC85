@@ -17,11 +17,12 @@ void ComputeUserVar (const Data *d, Grid *grid)
   int i,j,k;
   double *r   = grid->x[IDIR];
 
-  double ***temp        = GetUserVar("temperature");
-  double ***ndens       = GetUserVar("ndens");
-  double ***mach        = GetUserVar("mach");
-  double ***celldV      = GetUserVar("cellvol");
-  double ***delTByTwind = GetUserVar("delTByTwind");
+  double ***temp            = GetUserVar("temperature");
+  double ***ndens           = GetUserVar("ndens");
+  double ***mach            = GetUserVar("mach");
+  double ***celldV          = GetUserVar("cellvol");
+  double ***delTbyTwind     = GetUserVar("delTbyTwind");
+  double ***delRhoByRhoWind = GetUserVar("delRhoByRhoWind");
 
   double rIni        = g_inputParam[RINI]; // cloud position in units of Rcl
   double mach_ini    = g_inputParam[MACH];
@@ -67,7 +68,8 @@ void ComputeUserVar (const Data *d, Grid *grid)
       rho_wind = CC85rho(rByrInj)/CC85rho(rIniByrInj);
       prs_wind = CC85prs(rByrInj)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
       temp_wind = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
-      delTByTwind[k][j][i] = (temp[k][j][i] - temp_wind)/temp_wind;
+      delTbyTwind[k][j][i] = (temp[k][j][i] - temp_wind)/temp_wind;
+      delRhoByRhoWind[k][j][i] = (d->Vc[RHO][k][j][i] - rho_wind)/rho_wind;
 
       /*
       double distance = r[i];
