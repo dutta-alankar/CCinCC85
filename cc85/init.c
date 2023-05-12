@@ -206,7 +206,7 @@ void Analysis (const Data *d, Grid *grid)
   static double rIni, thIni, phiIni, chi, mach, rIniByrInj, tcc, factor, Tcl, mu, rho_cl;
   static int first = 0;
   static long int nstep = -1;
-  double tracer_cut[] = {1.0e-04, 1.0e-02, 1.0e-01, 2.0e-01};
+  double tracer_cut[] = {1.0e-04, 1.0e-02, 1.0e-01, 2.0e-01, 5.0e-01};
 
   double *r  = grid->x[IDIR];
   double tanl;

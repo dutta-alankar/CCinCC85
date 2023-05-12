@@ -1,5 +1,6 @@
 #include "pluto.h"
 #include "local_pluto.h"
+#include "wind.h"
 
 /* *************************************************************** */
 void ComputeUserVar (const Data *d, Grid *grid)
@@ -14,10 +15,21 @@ void ComputeUserVar (const Data *d, Grid *grid)
  ***************************************************************** */
 {
   int i,j,k;
-  double ***temp   = GetUserVar("temperature");
-  double ***ndens  = GetUserVar("ndens");
-  double ***mach   = GetUserVar("mach");
-  double ***celldV = GetUserVar("cellvol");
+  double *r   = grid->x[IDIR];
+
+  double ***temp        = GetUserVar("temperature");
+  double ***ndens       = GetUserVar("ndens");
+  double ***mach        = GetUserVar("mach");
+  double ***celldV      = GetUserVar("cellvol");
+  double ***delTByTwind = GetUserVar("delTByTwind");
+
+  double rIni        = g_inputParam[RINI]; // cloud position in units of Rcl
+  double mach_ini    = g_inputParam[MACH];
+  double rIniByrInj  = CC85pos(mach_ini);
+
+  double distance, rByrInj;
+  double rho_wind, prs_wind, temp_wind;
+
   /*
   double ***rtld  = GetUserVar("rtld");
   double ***ptld  = GetUserVar("ptld");
@@ -49,6 +61,14 @@ void ComputeUserVar (const Data *d, Grid *grid)
       ndens[k][j][i] = d->Vc[RHO][k][j][i]*UNIT_DENSITY/(CONST_mp*mu);
       mach[k][j][i]  = sqrt( DIM_EXPAND(d->Vc[iVR][k][j][i]*d->Vc[iVR][k][j][i], + d->Vc[iVTH][k][j][i]*d->Vc[iVTH][k][j][i], + d->Vc[iVPHI][k][j][i]*d->Vc[iVPHI][k][j][i]) )/sqrt(g_gamma*(d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i]));
       celldV[k][j][i] = grid->dV[k][j][i];
+
+      distance = r[i];
+      rByrInj  = (distance/rIni)*rIniByrInj;
+      rho_wind = CC85rho(rByrInj)/CC85rho(rIniByrInj);
+      prs_wind = CC85prs(rByrInj)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
+      temp_wind = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
+      delTByTwind[k][j][i] = (temp[k][j][i] - temp_wind)/temp_wind;
+
       /*
       double distance = r[i];
 
@@ -57,7 +77,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
       ptld[k][j][i]   = d->Vc[PRS][k][j][i]/prs_norm;
       vtld[k][j][i]   = sqrt( DIM_EXPAND(d->Vc[iVR][k][j][i]*d->Vc[iVR][k][j][i], + d->Vc[iVTH][k][j][i]*d->Vc[iVTH][k][j][i], + d->Vc[iVPHI][k][j][i]*d->Vc[iVPHI][k][j][i]) )/vel_norm;
       */
-  } /* DOM_LOOP(k,j,i) */
+  } /* TOT_LOOP(k,j,i) */
 }
 /* ************************************************************* */
 void ChangeOutputVar ()

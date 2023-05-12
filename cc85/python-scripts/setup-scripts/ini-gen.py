@@ -87,7 +87,7 @@ X3-end        userdef
 
 [Static Grid Output]
 
-uservar    4    temperature ndens mach cellvol
+uservar    5    temperature ndens mach cellvol delTByTwind
 output_dir {output_dir}
 log_dir    {log_dir}
 dbl       -1.0          -1   single_file

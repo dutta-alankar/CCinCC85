@@ -47,19 +47,22 @@ matplotlib.rcParams["legend.handlelength"] = 2
 # matplotlib.rcParams["figure.dpi"] = 200
 matplotlib.rcParams["axes.axisbelow"] = True
 
-os.makedirs('./pres-hists/', exist_ok=True)
-output_dir = "../../prs-degen/output-prs_2.5e5"
+os.makedirs('./prs-analysis/', exist_ok=True)
+snap_dir = "../../prs-degen/output-prs_2.5e5"
 
-tot_snap = 30
+tot_snap = 40
 chi = 100
 tcc = np.zeros(tot_snap)
 Tcl  = 4e4
+tracer_cut = 1.0e-01
+out_dir = f"prs-analysis/trc_cold_ge_{tracer_cut}"
+os.makedirs(out_dir, exist_ok=True)
 
 for snap in range(tot_snap):
     print(snap, end='\r')
     step = 10*snap
     tcc[snap] = step/np.sqrt(chi)
-    with h5py.File(f'{output_dir}/data.{snap:04d}.flt.h5', 'r') as data:
+    with h5py.File(f'{snap_dir}/data.{snap:04d}.flt.h5', 'r') as data:
         dV = np.array(data[f'/Timestep_{snap}/vars/cellvol']).flatten()
         temperature = np.array(data[f'/Timestep_{snap}/vars/temperature']).flatten()
         ndens = np.array(data[f'/Timestep_{snap}/vars/ndens']).flatten()
@@ -92,7 +95,7 @@ for snap in range(tot_snap):
         for indx, rad in enumerate(radius[:-1]):
             select = np.logical_and(distance>rad, distance<radius[indx+1])
             select_hot  = np.logical_and(np.logical_not(cond_cold_gas),select)
-            select_cold = np.logical_and(np.logical_and(cond_cold_gas, select), tracer>1e-4)
+            select_cold = np.logical_and(np.logical_and(cond_cold_gas, select), tracer>tracer_cut)
             hot_gas_prs  = pres[select_hot]
             cold_gas_prs = pres[select_cold]
 
@@ -139,7 +142,7 @@ for snap in range(tot_snap):
         plt.title(r"$t/t_{cc} \approx %d$"%tcc[snap])
         plt.legend(loc="best")
         plt.yscale('log')
-        plt.savefig(f"./pres-hists/local_{snap:04d}.png", transparent=False)
+        plt.savefig(f"./{out_dir}/local_{snap:04d}.png", transparent=False)
         plt.close()
 
         plt.figure(figsize=(13,10))
@@ -157,7 +160,7 @@ for snap in range(tot_snap):
         plt.title(r"$t/t_{cc} \approx %d$"%tcc[snap])
         plt.legend(loc="best")
         plt.yscale('log')
-        plt.savefig(f"./pres-hists/global_{snap:04d}.png", transparent=False)
+        plt.savefig(f"./{out_dir}/global_{snap:04d}.png", transparent=False)
         plt.close()
 
         plt.figure(figsize=(13,10))
@@ -167,7 +170,7 @@ for snap in range(tot_snap):
         plt.xlabel("Distance")
         plt.ylabel("Average Pressure [All average]")
         plt.legend(loc="best")
-        plt.savefig(f"./pres-hists/pres-prof_{snap:04d}.png", transparent=False)
+        plt.savefig(f"./{out_dir}/pres-prof_{snap:04d}.png", transparent=False)
         plt.close()
 
         plt.figure(figsize=(13,10))
@@ -177,5 +180,5 @@ for snap in range(tot_snap):
         plt.xlabel("Distance")
         plt.ylabel("Average Pressure [All average]")
         plt.legend(loc="best")
-        plt.savefig(f"./pres-hists/pres-prof_{snap:04d}.png", transparent=False)
+        plt.savefig(f"./{out_dir}/pres-prof_{snap:04d}.png", transparent=False)
         plt.close()
