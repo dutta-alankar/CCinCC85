@@ -218,6 +218,9 @@ cython_debug/
 # Virtual env
 .venv
 
+# Git key
+.secrets
+
 # output dumps and PLUTO specific files
 *.vtk
 *.h5
