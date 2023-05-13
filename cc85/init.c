@@ -206,7 +206,7 @@ void Analysis (const Data *d, Grid *grid)
   static double rIni, thIni, phiIni, chi, mach, rIniByrInj, tcc, factor, Tcl, mu, rho_cl;
   static int first = 0;
   static long int nstep = -1;
-  double tracer_cut[] = {1.0e-04, 1.0e-02, 1.0e-01, 2.0e-01, 5.0e-01};
+  double temperature_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
   double rho_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
 
   double *r  = grid->x[IDIR];
@@ -268,6 +268,13 @@ void Analysis (const Data *d, Grid *grid)
     //printLog("Initial Tracer read as %e\n", trc0_all);
   }
 
+  double rByrInjTmin = ((rIni+1)/rIni) * rIniByrInj; // rightmost edge of the cloud is the coldest due to adiabatic expansion
+  double prsCodeTmin = CC85prs(rByrInjTmin)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
+  double rhoCodeTmin = CC85rho(rByrInjTmin)/CC85rho(rIniByrInj)*chi;
+  double Tcutoff     = (prsCodeTmin/rhoCodeTmin)*pow(UNIT_VELOCITY,2)*((CONST_mp*mu)/CONST_kB); //in K
+  Tcutoff = (Tcutoff>1.e4)?Tcutoff:1.e4;
+  double Tmax    = 1.e8;
+
   if (g_stepNumber<=nstep && g_time<=(tanl+0.5*g_anldt)) return;
   g_restart = 0;
 
@@ -276,13 +283,13 @@ void Analysis (const Data *d, Grid *grid)
   double vr_cloud = 0., vt_cloud = 0., vp_cloud = 0.;
   double vr_cloud_all = 0., vt_cloud_all = 0., vp_cloud_all = 0.;
 
-  double mass_cold[(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0]))];
-  double mass_cold_all[(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0]))];
+  double mass_cold[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
+  double mass_cold_all[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
 
   double mass_cloud[(int)(sizeof(rho_cut) / sizeof(rho_cut[0]))];
   double mass_cloud_all[(int)(sizeof(rho_cut) / sizeof(rho_cut[0]))];
 
-  for (i=0; i<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); i++){
+  for (i=0; i<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); i++){
     mass_cold[i] = 0.;
     mass_cold_all[i] = 0.;
   }
@@ -292,7 +299,7 @@ void Analysis (const Data *d, Grid *grid)
     mass_cloud_all[i] = 0.;
   }
 
-  double dV, distance, rByrInj, rho_wind;
+  double dV, distance, rByrInj, rho_wind, prs_wind, T_wind, T_gas;
   int cold_indx;
   int cloud_indx;
   DOM_LOOP(k,j,i){
@@ -308,13 +315,18 @@ void Analysis (const Data *d, Grid *grid)
     distance = r[i];
     rByrInj  = (distance/rIni)*rIniByrInj;
     rho_wind = CC85rho(rByrInj)/CC85rho(rIniByrInj);
+    prs_wind = CC85prs(rByrInj)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
+    T_wind = MIN(MAX((prs_wind/rho_wind)*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB, Tcutoff), Tmax);
+
+    T_gas = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++){
-      if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx]))
-        mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
+        if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx]))
+          mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
     }
-    if( ((d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB) <= factor*Tcl ){ // temp_cut){
-      for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++){
-          if (d->Vc[TRC][k][j][i]>tracer_cut[cold_indx]) mass_cold[cold_indx] += d->Vc[RHO][k][j][i]*dV;
+    if( T_gas <= (factor*Tcl) ){ // temp_cut){
+      for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++){
+          if( T_gas <= (T_wind/temperature_cut[cold_indx]) )
+            mass_cold[cold_indx] += d->Vc[RHO][k][j][i]*dV;
       }
       /* if (d->Vc[RHO][k][j][i]>(rho_cl/sqrt(chi))) mass_cold += d->Vc[RHO][k][j][i]*dV; */
       /* if (d->Vc[RHO][k][j][i] >= (rho_cl/factor)) mass_cold += d->Vc[RHO][k][j][i]*dV; */
@@ -322,11 +334,11 @@ void Analysis (const Data *d, Grid *grid)
   }
 
   #ifdef PARALLEL
-  int transfer_size = 5 + (int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])) + (int)(sizeof(rho_cut) / sizeof(rho_cut[0]));
+  int transfer_size = 5 + (int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])) + (int)(sizeof(rho_cut) / sizeof(rho_cut[0]));
   int transfer = 0;
   double sendArray[transfer_size], recvArray[transfer_size];
   sendArray[transfer++] = trc; sendArray[transfer++] = mass_dense;
-  for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
     sendArray[transfer++] = mass_cold[cold_indx];
   }
   for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
@@ -336,7 +348,7 @@ void Analysis (const Data *d, Grid *grid)
   MPI_Allreduce (sendArray, recvArray, transfer_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // TODO: Replace this with Allreduce to improve on communication overhead
   transfer = 0;
   trc_all = recvArray[transfer++]; mass_dense_all = recvArray[transfer++];
-  for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
     mass_cold_all[cold_indx] = recvArray[transfer++];
   }
   for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
@@ -348,7 +360,7 @@ void Analysis (const Data *d, Grid *grid)
   trc_all    = trc;
   mass_dense_all = mass_dense;
 
-  for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
     mass_cold_all[cold_indx] = mass_cold[cold_indx];
   }
   for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
@@ -363,7 +375,7 @@ void Analysis (const Data *d, Grid *grid)
   vp_cloud_all = vp_cloud_all/trc_all;
   trc_all     = trc_all/trc0_all; // trc0_all is M_cloud, ini
   mass_dense_all = mass_dense_all/trc0_all;
-  for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
     mass_cold_all[cold_indx] = mass_cold_all[cold_indx]/trc0_all;
   }
   for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
@@ -379,15 +391,15 @@ void Analysis (const Data *d, Grid *grid)
     char buffer1[128], buffer2[128];
     sprintf(buffer1, "M(rho>rho_cl/%.1f)/M0", factor);
     sprintf(buffer2, "M(T<%.1f*T_cl)/M0", factor);
-    char *cold_header[(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0]))];
+    char *cold_header[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
     char *cloud_header[(int)(sizeof(rho_cut) / sizeof(rho_cut[0]))];
 
-    for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
+    for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
       char *dummy1 = (char *)malloc(256*sizeof(char));
       char *dummy2 = (char *)malloc(256*sizeof(char));
       cold_header[cold_indx] = (char *)malloc(256*sizeof(char));
       strcpy(dummy1, buffer2);
-      sprintf(dummy2, " [trc>%.1e]", tracer_cut[cold_indx]);
+      sprintf(dummy2, " [T(r)<T_w(r)/%.1f]", temperature_cut[cold_indx]);
       strcat(dummy1, dummy2);
       strcpy(cold_header[cold_indx], dummy1);
     }
@@ -407,7 +419,7 @@ void Analysis (const Data *d, Grid *grid)
       fprintf (fp,"# (1)%s\t\t(2)%s\t(3)%s\t\t(4)%s\t\t(5)%s\t\t",
                "time (code)", "g_dist_lab (code)", "v_cloud (code)", "trc/trc0", buffer1); //, buffer2, "dt (code)");
       int cont = 5;
-      for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
+      for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
         fprintf(fp,"(%d)%s\t\t", ++cont, cold_header[cold_indx]);
       }
       for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
@@ -420,7 +432,7 @@ void Analysis (const Data *d, Grid *grid)
     fp = fopen(fname,"a");
     fprintf (fp, "%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t\t",
              g_time, g_dist_lab, v_cloud, trc_all, mass_dense_all);
-    for (cold_indx=0; cold_indx<(int)(sizeof(tracer_cut) / sizeof(tracer_cut[0])); cold_indx++) {
+    for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
       fprintf (fp, "%12.6e\t\t\t", mass_cold_all[cold_indx]);
     }
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {

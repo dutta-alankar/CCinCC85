@@ -52,6 +52,14 @@ void ComputeUserVar (const Data *d, Grid *grid)
   #else
   double mu = MeanMolecularWeight((double*)d->Vc);
   #endif
+
+  double rByrInjTmin = ((rIni+1)/rIni) * rIniByrInj; // rightmost edge of the cloud is the coldest due to adiabatic expansion
+  double prsCodeTmin = CC85prs(rByrInjTmin)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
+  double rhoCodeTmin = CC85rho(rByrInjTmin)/CC85rho(rIniByrInj)*g_inputParam[CHI];
+  double Tcutoff     = (prsCodeTmin/rhoCodeTmin)*pow(UNIT_VELOCITY,2)*((CONST_mp*mu)/CONST_kB); //in K
+  Tcutoff = (Tcutoff>1.e4)?Tcutoff:1.e4;
+  double Tmax    = 1.e8;
+
   /*
   double *r   = grid->x[IDIR];
   double *th  = grid->x[JDIR];
@@ -67,7 +75,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
       rByrInj  = (distance/rIni)*rIniByrInj;
       rho_wind = CC85rho(rByrInj)/CC85rho(rIniByrInj);
       prs_wind = CC85prs(rByrInj)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
-      temp_wind = (prs_wind/rho_wind)*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
+      temp_wind = MIN(MAX((prs_wind/rho_wind)*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB, Tcutoff), Tmax);
       delTbyTwind[k][j][i] = (temp[k][j][i] - temp_wind)/temp_wind;
       delRhoByRhoWind[k][j][i] = (d->Vc[RHO][k][j][i] - rho_wind)/rho_wind;
 
@@ -126,7 +134,7 @@ void ChangeOutputVar ()
   //image->max = image->min = 0.0;
   image->logscale = 1;
   image->colormap = "red";
-  */
+*/
 
 #ifdef PARTICLES
   //SetOutputVar ("energy",PARTICLES_FLT_OUTPUT, NO);
