@@ -5,22 +5,22 @@
 
   Solve the system of ordinary differential equations describing
   optically thin cooling and ionization network (if any).
-  We use an adaptive step size integration method and follow the 
+  We use an adaptive step size integration method and follow the
   strategy outlined in section 5.1 of Tesileanu et al. (2008) for handling
   stiff cells.
 
   On output, a time-step estimate for the next time level is computed using
-  the relative or absolute variation obtained during the integration of the ODE 
-  (from t(n) --> t(n+1))  
+  the relative or absolute variation obtained during the integration of the ODE
+  (from t(n) --> t(n+1))
   \f[
      \Delta t_c = \min_{ijk}\left[\frac{\Delta t^n M_R}{\epsilon}\right]
      \,\quad\rm{where}\quad
      \epsilon = \max\left(\left|\frac{p^{n+1}}{p^n} - 1\right|,\,
                 |X^{n+1}-X^n|\right)
   \f]
-  where \f$ M_R \f$ is the maximum cooling rate (defined by the global variable  
+  where \f$ M_R \f$ is the maximum cooling rate (defined by the global variable
   ::g_maxCoolingRate) and X are the chemical species.
-  
+
   \b References
      - "Simulating radiative astrophysical flows with the PLUTO code:
         a non-equilibrium, multi-species cooling function" \n
@@ -59,7 +59,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   double v0[NVAR_COOLING], v1[NVAR_COOLING], k1[NVAR_COOLING];
   double maxrate;
   intList var_list;
- 
+
 /* --------------------------------------------------------
    0. Create list of time-dependent variables for this
       step. Initialize coefficients.
@@ -73,27 +73,27 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
     v0[nv] = v1[nv] = k1[nv] = 0.0;
   }
 
-/* -------------------------------------------------------- 
+/* --------------------------------------------------------
    1. Main loop on interior computational zones
    --------------------------------------------------------  */
 
   DOM_LOOP(k,j,i){
     if (d->Vc[TRC][k][j][i] <= 1.0e-04) continue; // XXX: Ignore Wind Cooling
-  
+
   /* ------------------------------------------------------
      1A. Define global coordinates.
          (useful for spatial-dependent cooling
-     ------------------------------------------------------ */ 
+     ------------------------------------------------------ */
 
     gCooling_x1 = grid->x[IDIR][i];
     gCooling_x2 = grid->x[JDIR][j];
     gCooling_x3 = grid->x[KDIR][k];
 
   /* ------------------------------------------------------
-     1B. Skip integration if cell has been tagged with 
-      FLAG_INTERNAL_BOUNDARY or FLAG_SPLIT_CELL 
+     1B. Skip integration if cell has been tagged with
+      FLAG_INTERNAL_BOUNDARY or FLAG_SPLIT_CELL
       (AMR only).
-     ------------------------------------------------------ */ 
+     ------------------------------------------------------ */
 
     #if INTERNAL_BOUNDARY == YES
     if (d->flag[k][j][i] & FLAG_INTERNAL_BOUNDARY) continue;
@@ -105,7 +105,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
      1C. Compute temperature and internal energy from
          density, pressure and concentrations.
      ------------------------------------------------------ */
-    
+
     prs = v0[PRS];
     #if COOLING != TABULATED
     mu0 = MeanMolecularWeight(v0);
@@ -148,12 +148,12 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
 
     if (stiff || err > 1.0){  /* Adaptive step size */
       double dt1, dts=dt;
-      double t1   = 0.0;  /* t1 = 0, ..., dt */ 
+      double t1   = 0.0;  /* t1 = 0, ..., dt */
       int    done = 0;
 
       dt1 = 0.5/(fabs(k1[RHOE]) + 1.0/dt);   /* Rough estimate to initial dt1 */
       do {
-        
+
       /* -- Adjust time step dt1 so we do not overshoot dt -- */
 
         if ( (t1+dt1) >= dt) {
@@ -162,7 +162,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
         }
 
         dts = SolveODE_CK45 (v0, k1, v1, dt1, min_tol, &var_list);
-        t1 += dt1;  
+        t1 += dt1;
         dt1 = dts;
 
         if (done) break;
@@ -184,16 +184,16 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
     #if COOLING == H2_COOL
      v1[X_H2] = MIN(v1[X_H2], 0.5);
     #endif
-    
+
   /* -- pressure must be positive -- */
-  
+
     #if COOLING != TABULATED
     mu1 = MeanMolecularWeight(v1);
     #else
     double dummy1[4];
     mu1 = MeanMolecularWeight(v1, dummy1);
     #endif
-    
+
     #if EOS == IDEAL
     prs = v1[RHOE]*(g_gamma - 1.0);
     T1  = prs/v1[RHO]*KELVIN*mu1;
@@ -213,7 +213,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
       prs = g_minCoolingTemp*v1[RHO]/(KELVIN*mu1);
 
   /* ------------------------------------------------------
-     1G. Suggest next time step based on 
+     1G. Suggest next time step based on
          fractional variaton.
      ------------------------------------------------------ */
 
@@ -225,7 +225,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
     NIONS_LOOP(nv) err = MAX(err, fabs(d->Vc[nv][k][j][i] - v1[nv]));
     #endif
 
-    scrh = dt*g_maxCoolingRate/err;   
+    scrh = dt*g_maxCoolingRate/err;
     Dts->dt_cool = MIN(Dts->dt_cool, scrh);
 
   /* ------------------------------------------------------
@@ -237,15 +237,15 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
 
   } /* -- End DOM_LOOP(k,j,i) -- */
 }
- 
+
 /* ********************************************************************* */
 void Numerical_Jacobian (double *v, double **J)
 /*!
- *  Compute Jacobian matrix numerically and 
+ *  Compute Jacobian matrix numerically and
  *  get eigenvector and eigenvalue decomposition
  *
  *  The purpose of this function is to detect
- *  stiffness. 
+ *  stiffness.
  *
  *  Note: This function is EXTREMELY time consuming.
  *
@@ -266,7 +266,7 @@ void Numerical_Jacobian (double *v, double **J)
   }
   vp[RHOE] *= 1.0 + eps;
   vm[RHOE] *= 1.0 - eps;
-  
+
   Radiat (vp, Rp);
   Radiat (vm, Rm);
 
@@ -284,15 +284,15 @@ void Numerical_Jacobian (double *v, double **J)
     }
     vp [l + NFLX] = v[l + NFLX] + eps;
     vm [l + NFLX] = v[l + NFLX] - eps;
-                      
+
     vp [l + NFLX] = MIN(vp [l + NFLX], 1.0);
     vm [l + NFLX] = MAX(vm [l + NFLX], 0.0);
-                         
+
     Radiat (vp , Rp);
     Radiat (vm , Rm);
 
     for (k = 0; k < n - 1; k++){
-      J[k][l] = (Rp[k + NFLX] - Rm[k + NFLX])/(vp[l + NFLX] - vm[l + NFLX]); 
+      J[k][l] = (Rp[k + NFLX] - Rm[k + NFLX])/(vp[l + NFLX] - vm[l + NFLX]);
     }
     J[n - 1][l] = (Rp[RHOE] - Rm[RHOE])/(vp[l + NFLX] - vm[l + NFLX]);
   }
@@ -301,7 +301,7 @@ void Numerical_Jacobian (double *v, double **J)
 /* --------------------------------------------------------
     			Townsend cooling
    -------------------------------------------------------- */
-  
+
 double *g_invT_tab, *g_invY_tab, *g_Y_tab, *g_L_tab, *g_T_tab;
 int g_ntab;
 double interp1D(double* , double* , double , char* );
@@ -320,7 +320,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
 {
   int  nv, k, j, i, stiff, status;
   double err, scrh, min_tol = 2.e-5;
-  double T0, T1, mu0, mu1, prs, tcool; 
+  double T0, T1, mu0, mu1, prs, tcool;
   double Tref = 1.e9, tcool_ref= 0.;
   double v0[NVAR], v1[NVAR], k1[NVAR];
   double maxrate, dt_sub;
@@ -328,7 +328,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   intList var_list;
   double dummy0[4], dummy1[4];
   double mue, mui;
-  
+
   double *x  = grid->x[IDIR];
   double *y  = grid->x[JDIR];
   double *z  = grid->x[KDIR];
@@ -336,25 +336,25 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   double *dy = grid->dx[JDIR];
   double *dz = grid->dx[KDIR];
   double gCooling_x, gCooling_y, gCooling_z;
-  
+
 /* --------------------------------------------------------
     Set number and indices of the time-dependent variables
    -------------------------------------------------------- */
-  
+
   var_list.nvar    = NIONS+1;
   var_list.indx[0] = PRS;
   for (nv = 0; nv < NIONS; nv++) var_list.indx[nv+1] = NFLX+nv;
-  
+
 /* -----------------------------------------------------
     Zero k1
    ----------------------------------------------------- */
-  
-  NVAR_LOOP(nv) k1[nv] = 0.0;  
+
+  NVAR_LOOP(nv) k1[nv] = 0.0;
 
   DOM_LOOP(k,j,i){  /* -- span the computational domain to find minimum tcool and global code step gets modified accordingly-- */
    NVAR_LOOP(nv) v0[nv] = v1[nv] = d->Vc[nv][k][j][i];
-   
-   
+
+
    mu0 = MeanMolecularWeight(v0, dummy0);
    T0  = v0[PRS]/v0[RHO]*KELVIN*mu0;
   #if EOS == IDEAL
@@ -362,7 +362,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   #else
    v1[RHOE] = v0[RHOE] = InternalEnergy(v0, T0);
   #endif
-   Radiat(v0, k1); //only run to populate tabulated arrays from storage if first time and get the cooling rate at every run 
+   Radiat(v0, k1); //only run to populate tabulated arrays from storage if first time and get the cooling rate at every run
    tcool = -v0[RHOE]/k1[RHOE]; //v0[RHOE]=(prs/(g_gamma-1.0)) for ideal gas and k1[RHOE]=-neniLAMBDA (See radiat.c)
    Dts->dt_cool = MIN(Dts->dt_cool, tcool);
    maxrate = GetMaxRate (v0, k1, T0);
@@ -376,45 +376,45 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   MPI_Allreduce(&dt_cool_thisproc, &dt_cool_allproc, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
   Dts->dt_cool = dt_cool_allproc;
  #endif
-  
-/*  ----------------------------------------------------------- 
-                   Begin Integration 
+
+/*  -----------------------------------------------------------
+                   Begin Integration
     -----------------------------------------------------------  */
- 
+
 /* -----------------------------------------------------
  *     Subcycling starts here
  * ----------------------------------------------------- */
   dt_sub = 1.0/(1.0/(Dts->dt_cool/n_sub_max) + 2./dt); //Subcycle limit
   int sub_steps = (int)ceil(dt/dt_sub);
   dt_sub = dt/sub_steps;
-  int n_sub = 0; 
+  int n_sub = 0;
   for (n_sub = 0; n_sub<sub_steps; n_sub++ ){
     DOM_LOOP(k,j,i){  /* -- span the computational domain -- */
       if (d->Vc[TRC][k][j][i] <= 1.0e-04) continue; // XXX: Ignore Wind Cooling
       /* --------------------------------------------------
-         Skip integration if cell has been tagged with 
-         FLAG_INTERNAL_BOUNDARY or FLAG_SPLIT_CELL 
+         Skip integration if cell has been tagged with
+         FLAG_INTERNAL_BOUNDARY or FLAG_SPLIT_CELL
          (only for AMR)
-         -------------------------------------------------- */ 
+         -------------------------------------------------- */
     #if INTERNAL_BOUNDARY == YES
      if (d->flag[k][j][i] & FLAG_INTERNAL_BOUNDARY) continue;
     #endif
      if (d->flag[k][j][i] & FLAG_SPLIT_CELL) continue;
-     
+
      /* ------------------------------------------------------
      1A. Define global coordinates.
          (useful for spatial-dependent cooling
-     ------------------------------------------------------ */ 
+     ------------------------------------------------------ */
 
     gCooling_x = x[i];
     gCooling_y = y[j];
     gCooling_z = z[k];
-     
+
      /* ----------------------------------------------
        Compute temperature and internal energy from
        density, pressure and concentrations.
        ---------------------------------------------- */
-    
+
      NVAR_LOOP(nv) v0[nv] = v1[nv] = d->Vc[nv][k][j][i]; //Initialize cell fields
      prs = v0[PRS];
      mu0 = MeanMolecularWeight(v0, dummy0);
@@ -424,7 +424,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
     #else
      v1[RHOE] = v0[RHOE] = InternalEnergy(v0, T0);
     #endif
-     
+
      if (T0 <= 0.0){
        print ("! CoolingSource() line 409: negative initial temperature\n");
        print (" %12.6e  %12.6e \n",v0[RHOE], v0[RHO]);
@@ -435,14 +435,14 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
        mu1 = MeanMolecularWeight(v1, dummy1);
        prs = g_minCoolingTemp*v1[RHO]/(KELVIN*mu1);
        scrh = dt*g_maxCoolingRate/err; //****Check this out later (max change in P/ Current change in P)
-       Dts->dt_cool = MIN(Dts->dt_cool, scrh); 
+       Dts->dt_cool = MIN(Dts->dt_cool, scrh);
        d->Vc[PRS][k][j][i] = prs;
-       NIONS_LOOP(nv) d->Vc[nv][k][j][i] = v1[nv]; 
+       NIONS_LOOP(nv) d->Vc[nv][k][j][i] = v1[nv];
        continue;
      }
-     
-     mu0 = MeanMolecularWeight(v0, dummy0); 
-     mue = dummy0[0]; mui = dummy0[1];  
+
+     mu0 = MeanMolecularWeight(v0, dummy0);
+     mue = dummy0[0]; mui = dummy0[1];
      Radiat(v0, k1); //only run to populate tabulated arrays from storage if first time and get the cooling rate at every run
      tcool = -v0[RHOE]/k1[RHOE]; //v0[RHOE]=(prs/(g_gamma-1.0)) for ideal gas and k1[RHOE]=-nenHLAMBDA (See radiat.c)
      tcool_ref = (1./(g_gamma-1))*(CONST_kB*Tref/(v0[RHO]*UNIT_DENSITY*lambda_interp(Tref)))*(mue*mui/mu0)*CONST_mp;
@@ -470,19 +470,19 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
       *               pressure so that T = g_minCoolingTemp.
       * ------------------------------------------------------ */
      if (T1 < g_minCoolingTemp || T0 < g_minCoolingTemp)  prs = g_minCoolingTemp*v1[RHO]/(KELVIN*mu1);
-     
+
      err = fabs(prs/d->Vc[PRS][k][j][i] - 1.0);
     #if COOLING == MINEq
-     for (nv = NFLX; nv < NFLX + NIONS - Fe_IONS; nv++) 
+     for (nv = NFLX; nv < NFLX + NIONS - Fe_IONS; nv++)
     #else
      NIONS_LOOP(nv)  err = MAX(err, fabs(d->Vc[nv][k][j][i] - v1[nv]));
     #endif
      err = MAX(err, fabs(d->Vc[nv][k][j][i] - v1[nv]));
-     
+
      scrh = dt*g_maxCoolingRate/err; //****Check this out later (max change in P/ Current change in P)
-     
+
      Dts->dt_cool = MIN(Dts->dt_cool, scrh);
-     
+
      /* ------------------------------------------------------
       *      1H. Update main solution array
       * ------------------------------------------------------ */
@@ -508,7 +508,7 @@ double invY_interp(double townY) {
 double interp1D(double* x_data, double* y_data, double x_request, char* msg) {
 
  /* ----------------------------------------------
-  *         Table lookup by binary search used for interpolating y as a function of x. 
+  *         Table lookup by binary search used for interpolating y as a function of x.
   *        x is assumed to be arranged in ascending order
   *  ---------------------------------------------- */
   int ntab = g_ntab; // number of entries maybe (int)(sizeof(x_data)/sizeof(x_data[0])) will work

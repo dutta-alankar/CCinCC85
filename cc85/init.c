@@ -320,8 +320,10 @@ void Analysis (const Data *d, Grid *grid)
 
     T_gas = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++){
-        if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx]))
-          mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
+        if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx])){
+          if( T_gas <= (factor*Tcl) )
+            mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
+        }
     }
     if( T_gas <= (factor*Tcl) ){ // temp_cut){
       for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++){
