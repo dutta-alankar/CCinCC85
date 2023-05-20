@@ -1,7 +1,7 @@
-id: pressure_test
+id: growth_test
 
 paths:
-- {root}/prs-dgen/output-prs_2.5e5
+- {root}/threshold/output-tcoolmBytcc_1.00
 
 attrs:
   has_cooling: true
@@ -9,13 +9,13 @@ attrs:
   dimensionality: 3
   chi: 100
   mach_ini: 1.8
-  tcoolmBytcc: 0.1
+  tcoolmBytcc: 0.01
   Tcl: 4e4
   RinibyRcl: 40
   PinibykB: 2.5e5
   grid_min: [35,  1.45, -0.12]
-  grid_min: [335, 1.7,   0.12]
+  grid_min: [335, 1.70,  0.12]
   ncells: [4800, 160, 160]
   unit_dens: 6.3682e-26
   unit_vel: 5.4100e+07
-  unit_len: 2.7198e+19
+  unit_len: 2.7198e+18

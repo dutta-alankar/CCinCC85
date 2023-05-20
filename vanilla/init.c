@@ -137,10 +137,11 @@ void Analysis (const Data *d, Grid *grid)
   int yr = 365*24*60*60;
   static double trc0 = 0.;
   static double trc0_all = 0.;
-  static double rIni, thIni, phiIni;
-  static double chi, mach, tcc, Tcl, mu, factor;
+  static double rIni, thIni, phiIni, chi, mach, tcc, factor, Tcl, mu, rho_cl;
   static int first = 0;
   static long int nstep = -1;
+  double temperature_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
+  double rho_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
 
   double *r  = grid->x[IDIR];
   double tanl;
@@ -150,7 +151,7 @@ void Analysis (const Data *d, Grid *grid)
     double oth_mu[4];
     mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
 
-    rIni        = g_inputParam[RINI]; //Enter cloud position in Rcl
+    rIni        = g_inputParam[RINI]; // cloud position in units of Rcl
     thIni       = g_inputParam[THINI]*CONST_PI/180;
     phiIni      = g_inputParam[PHIINI]*CONST_PI/180;
     chi         = g_inputParam[CHI];
@@ -159,8 +160,8 @@ void Analysis (const Data *d, Grid *grid)
     tcc      = sqrt(chi);
     factor   = sqrt(chi)/3;
     Tcl      = pow(UNIT_VELOCITY/mach,2)*(mu*CONST_mp)/(g_gamma*CONST_kB*chi); //in K
+    rho_cl   = chi;
   }
-
   if (g_stepNumber==0){
     double dV;
     DOM_LOOP(k,j,i){
@@ -179,6 +180,11 @@ void Analysis (const Data *d, Grid *grid)
     trc0_all    = trc0;
     #endif
   }
+  if (g_stepNumber==0 && trc0_all == 0) {
+    printLog("> Analysis(): Check initialization! Likely some error as no cloud tracer has been detected!\n");
+    QUIT_PLUTO(1);
+  }
+
   if (trc0_all==0) { // Means we have restarted!
     g_restart = 1;
     FILE *fp;
@@ -195,58 +201,114 @@ void Analysis (const Data *d, Grid *grid)
     //printLog("Initial Tracer read as %e\n", trc0_all);
   }
 
+  double Tcutoff = (Tcl>1.e4)?Tcl:1.e4;
+  double Tmax    = 1.e8;
+
   if (g_stepNumber<=nstep && g_time<=(tanl+0.5*g_anldt)) return;
   g_restart = 0;
 
   double      trc   = 0.,      trc_all    = 0.;
-  double mass_cloud = 0., mass_cloud_all  = 0.;
   double mass_dense = 0., mass_dense_all  = 0.;
-  double mass_cold  = 0., mass_cold_all   = 0.;
   double vr_cloud = 0., vt_cloud = 0., vp_cloud = 0.;
   double vr_cloud_all = 0., vt_cloud_all = 0., vp_cloud_all = 0.;
 
-  double dV;
+  double mass_cold[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
+  double mass_cold_all[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
+
+  double mass_cloud[(int)(sizeof(rho_cut) / sizeof(rho_cut[0]))];
+  double mass_cloud_all[(int)(sizeof(rho_cut) / sizeof(rho_cut[0]))];
+
+  for (i=0; i<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); i++){
+    mass_cold[i] = 0.;
+    mass_cold_all[i] = 0.;
+  }
+
+  for (i=0; i<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); i++){
+    mass_cloud[i] = 0.;
+    mass_cloud_all[i] = 0.;
+  }
+
+  double dV, rByrInj, rho_wind, T_wind, T_gas;
+  int cold_indx;
+  int cloud_indx;
+  rho_wind = 1.0;
   DOM_LOOP(k,j,i){
     dV = grid->dV[k][j][i]; // Cell volume
     trc         += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
     vr_cloud    += d->Vc[RHO][k][j][i]*d->Vc[iVR][k][j][i]*d->Vc[TRC][k][j][i]*dV;
     vt_cloud    += d->Vc[RHO][k][j][i]*d->Vc[iVTH][k][j][i]*d->Vc[TRC][k][j][i]*dV;
     vp_cloud    += d->Vc[RHO][k][j][i]*d->Vc[iVPHI][k][j][i]*d->Vc[TRC][k][j][i]*dV;
-    mass_cloud  += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
 
-    if(d->Vc[RHO][k][j][i] >= (chi/factor))
+    if(d->Vc[RHO][k][j][i] >= (rho_cl/factor))
       mass_dense += d->Vc[RHO][k][j][i]*dV;
-    if( ((d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB) <= factor*Tcl ){
-      if (d->Vc[TRC][k][j][i]>1e-4) mass_cold += d->Vc[RHO][k][j][i]*dV;
+    // double temp_cut = 1.2e5;
+    T_wind = MIN(MAX(chi*Tcl, Tcutoff), Tmax);
+
+    T_gas = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
+    for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++){
+        if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx])){
+          if( T_gas <= (factor*Tcl) )
+            mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
+        }
+    }
+    if( T_gas <= (factor*Tcl) ){ // temp_cut){
+      for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++){
+          if( T_gas <= (T_wind/temperature_cut[cold_indx]) )
+            mass_cold[cold_indx] += d->Vc[RHO][k][j][i]*dV;
+      }
+      /* if (d->Vc[RHO][k][j][i]>(rho_cl/sqrt(chi))) mass_cold += d->Vc[RHO][k][j][i]*dV; */
+      /* if (d->Vc[RHO][k][j][i] >= (rho_cl/factor)) mass_cold += d->Vc[RHO][k][j][i]*dV; */
     }
   }
+
   #ifdef PARALLEL
-  int transfer_size = 7;
+  int transfer_size = 5 + (int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])) + (int)(sizeof(rho_cut) / sizeof(rho_cut[0]));
   int transfer = 0;
   double sendArray[transfer_size], recvArray[transfer_size];
-  sendArray[transfer++] = trc; sendArray[transfer++] = mass_cloud; sendArray[transfer++] = mass_dense;
-  sendArray[transfer++] = mass_cold;
+  sendArray[transfer++] = trc; sendArray[transfer++] = mass_dense;
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+    sendArray[transfer++] = mass_cold[cold_indx];
+  }
+  for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+    sendArray[transfer++] = mass_cloud[cloud_indx];
+  }
   sendArray[transfer++] = vr_cloud; sendArray[transfer++] = vt_cloud; sendArray[transfer++] = vp_cloud;
-  MPI_Allreduce (sendArray, recvArray, transfer_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce (sendArray, recvArray, transfer_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // TODO: Replace this with Allreduce to improve on communication overhead
   transfer = 0;
-  trc_all = recvArray[transfer++]; mass_cloud_all = recvArray[transfer++]; mass_dense_all = recvArray[transfer++];
-  mass_cold_all = recvArray[transfer++];
+  trc_all = recvArray[transfer++]; mass_dense_all = recvArray[transfer++];
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+    mass_cold_all[cold_indx] = recvArray[transfer++];
+  }
+  for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+    mass_cloud_all[cloud_indx] = recvArray[transfer++];
+  }
   vr_cloud_all = recvArray[transfer++]; vt_cloud_all = recvArray[transfer++]; vp_cloud_all = recvArray[transfer++];
+
   #else
   trc_all    = trc;
-  mass_cloud_all = mass_cloud;
   mass_dense_all = mass_dense;
-  mass_cold_all  = mass_cold;
+
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+    mass_cold_all[cold_indx] = mass_cold[cold_indx];
+  }
+  for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+    mass_cloud_all[cloud_indx] = mass_cloud[cloud_indx];
+  }
   vr_cloud_all    = vr_cloud;
   vt_cloud_all    = vt_cloud;
   vp_cloud_all    = vp_cloud;
   #endif
-  vr_cloud_all = vr_cloud_all/mass_cloud_all;
-  vt_cloud_all = vt_cloud_all/mass_cloud_all;
-  vp_cloud_all = vp_cloud_all/mass_cloud_all;
-  trc_all     = trc_all/trc0_all;
+  vr_cloud_all = vr_cloud_all/trc_all;
+  vt_cloud_all = vt_cloud_all/trc_all;
+  vp_cloud_all = vp_cloud_all/trc_all;
+  trc_all     = trc_all/trc0_all; // trc0_all is M_cloud, ini
   mass_dense_all = mass_dense_all/trc0_all;
-  mass_cold_all  = mass_cold_all /trc0_all;
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+    mass_cold_all[cold_indx] = mass_cold_all[cold_indx]/trc0_all;
+  }
+  for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+    mass_cloud_all[cloud_indx] = mass_cloud_all[cloud_indx]/trc0_all;
+  }
   g_trctrack = trc_all;
 
   double v_cloud = sqrt(vr_cloud_all*vr_cloud_all + vt_cloud_all*vt_cloud_all + vp_cloud_all*vp_cloud_all);
@@ -254,23 +316,57 @@ void Analysis (const Data *d, Grid *grid)
   /* ---- Write ascii file "analysis.dat" to disk ---- */
   if (prank == 0){
     char fname[512];
-    char buffer1[50], buffer2[50];
+    char buffer1[128], buffer2[128];
     sprintf(buffer1, "M(rho>rho_cl/%.1f)/M0", factor);
     sprintf(buffer2, "M(T<%.1f*T_cl)/M0", factor);
+    char *cold_header[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
+    char *cloud_header[(int)(sizeof(rho_cut) / sizeof(rho_cut[0]))];
+
+    for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+      char *dummy1 = (char *)malloc(256*sizeof(char));
+      char *dummy2 = (char *)malloc(256*sizeof(char));
+      cold_header[cold_indx] = (char *)malloc(256*sizeof(char));
+      strcpy(dummy1, buffer2);
+      sprintf(dummy2, " [T(r)<T_w(r)/%.1f]", temperature_cut[cold_indx]);
+      strcat(dummy1, dummy2);
+      strcpy(cold_header[cold_indx], dummy1);
+    }
+
+    for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+      cloud_header[cloud_indx] = (char *)malloc(256*sizeof(char));
+      sprintf(cloud_header[cloud_indx], "M (rho(r)>=%.1f rho_w(r))/M0", rho_cut[cloud_indx]);
+    }
+
     FILE *fp;
     sprintf (fname, "%s/analysis.dat",RuntimeGet()->output_dir);
     if (g_stepNumber == 0){ /* Open for writing only when we are starting */
       fp = fopen(fname,"w"); /* from beginning */
-      fprintf (fp,"#%s\t=\t%.5e\n", "tcc (code)", tcc);
-      fprintf (fp,"#%s\t\t%s\t%s\t\t%s\t\t%s\t\t%s\t\t%s\n",
-               "time (code)", "g_dist_lab (code)", "v_cloud (code)", "trc/trc0",
-               buffer1, buffer2, "dt (code)");
+      fprintf (fp,"# %s\t=\t%.5e\n", "tcc (code)", tcc);
+      fprintf (fp,"# %s\t=\t%.5e\n", "vwind_asymp (code)", UNIT_VELOCITY );
+      // Header
+      fprintf (fp,"# (1)%s\t\t(2)%s\t(3)%s\t\t(4)%s\t\t(5)%s\t\t",
+               "time (code)", "g_dist_lab (code)", "v_cloud (code)", "trc/trc0", buffer1); //, buffer2, "dt (code)");
+      int cont = 5;
+      for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+        fprintf(fp,"(%d)%s\t\t", ++cont, cold_header[cold_indx]);
+      }
+      for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+        fprintf(fp,"(%d)%s\t\t", ++cont, cloud_header[cloud_indx]);
+      }
+      fprintf (fp, "(%d)dt (code)\n", ++cont);
       fclose(fp);
     }
     /* Append numeric data */
     fp = fopen(fname,"a");
-    fprintf (fp, "%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\n",
-             g_time, g_dist_lab, v_cloud, trc_all, mass_dense_all, mass_cold_all, g_dt);
+    fprintf (fp, "%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t\t",
+             g_time, g_dist_lab, v_cloud, trc_all, mass_dense_all);
+    for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+      fprintf (fp, "%12.6e\t\t\t", mass_cold_all[cold_indx]);
+    }
+    for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+      fprintf (fp, "%12.6e\t\t\t", mass_cloud_all[cloud_indx]);
+    }
+    fprintf (fp, "%12.6e\n", g_dt);
     fclose(fp);
 
     /* Write restart file */
@@ -351,7 +447,8 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   double Tcl         = pow(UNIT_VELOCITY/mach,2)*(mu*CONST_mp)/(g_gamma*CONST_kB*chi); //in K
 
   /* set steady wid profile at the boundary */
-  if (side == X1_BEG || side == X2_BEG || side == X3_BEG || side == X1_END || side == X2_END || side == X3_END){ /* -- select the boundary side -- */
+  if (side == X1_BEG || side == X2_BEG || side == X3_BEG || side == X1_END || side == X2_END || side == X3_END){
+    /* -- select the boundary side -- */
     BOX_LOOP(box,k,j,i){ /* -- Loop over boundary zones -- */
       d->Vc[RHO][k][j][i]   = 1.;
       d->Vc[PRS][k][j][i]   = 1./(g_gamma*mach*mach);

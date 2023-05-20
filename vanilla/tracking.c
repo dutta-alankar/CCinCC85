@@ -87,7 +87,7 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
     cloud_pos = g_dist_lab;
     return;
   }
-  int OffInterval = (int)round(2.0*sqrt(chi));
+  int OffInterval = (int)round(3.0*sqrt(chi));
   if ( (g_time>12.0*sqrt(chi)) ){
     int val = ( ((int)round(g_time-12.0*sqrt(chi)))%OffInterval )%2;
     if (val==1){
