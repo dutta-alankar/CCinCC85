@@ -125,5 +125,6 @@ ZMET                        1.0
 """
 pluto_ini = pluto_ini[1:]
 
+# if (Rbeg-5*dr<0): print("Problem!")
 with open("../../pluto.ini", "w") as text_file:
     text_file.write(pluto_ini)
