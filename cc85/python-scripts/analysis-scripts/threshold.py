@@ -157,7 +157,7 @@ for i, threshold in enumerate(tcoolmBytcc):
         Rcl_dyn = (3*(data[:,14]*M_cloud_ini)/(4*np.pi*rho_cloud))**(1/3)/pc
         p = plt.semilogy(data[:,0]/np.sqrt(chi), (Rcl_dyn/Rgo_dyn)/(Rcl[i]/Rgo), label=r"$t_{cool,mix}/t_{cc} = %.2f$"%threshold)
 
-    
+
 # plt.legend(loc="best", fancybox=True)
 plt.xlim(xmin=0, xmax=40)
 # plt.ylim(ymin=1e-4, ymax=35)

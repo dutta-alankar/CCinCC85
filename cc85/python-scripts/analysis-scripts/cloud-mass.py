@@ -54,7 +54,7 @@ for threshold in thresholds:
         p = plt.semilogy(data[:,0]/np.sqrt(chi), data[:,14], label=r"$t_{cool,mix}/t_{cc} = %.2f$"%threshold)
         data = np.loadtxt(f"{location_vanl}{threshold:.2f}/analysis.dat")
         plt.semilogy(data[:,0]/np.sqrt(chi), data[:,14], linestyle="--", color=p[-1].get_color())
-    
+
 # plt.legend(loc="best", fancybox=True)
 plt.xlim(xmin=0, xmax=40)
 plt.ylim(ymin=1e-2, ymax=35)

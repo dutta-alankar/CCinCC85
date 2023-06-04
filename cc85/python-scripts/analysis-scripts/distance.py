@@ -47,7 +47,7 @@ location_vanl = "../../../vanilla/threshold/output-tcoolmBytcc_"
 chi = 100
 thresholds = [1.0, 0.5, 0.1, 0.01]
 kpc = 3.086e+21
-UNIT_LENGTH = [2.7198e+18, 5.4395e+18, 2.7198e+19, 2.7198e+20] 
+UNIT_LENGTH = [2.7198e+18, 5.4395e+18, 2.7198e+19, 2.7198e+20]
 
 plt.figure(figsize=(13,10))
 for i, threshold in enumerate(thresholds):
@@ -56,7 +56,7 @@ for i, threshold in enumerate(thresholds):
         p = plt.semilogy(data[:,0]/np.sqrt(chi), (data[:,1]-data[0,1])*UNIT_LENGTH[i]/kpc, label=r"$t_{cool,mix}/t_{cc} = %.2f$"%threshold)
         data = np.loadtxt(f"{location_vanl}{threshold:.2f}/analysis.dat")
         plt.semilogy(data[:,0]/np.sqrt(chi), (data[:,1]-data[0,1])*UNIT_LENGTH[i]/kpc, linestyle="--", color=p[-1].get_color())
-    
+
 # plt.legend(loc="best", fancybox=True)
 plt.xlim(xmin=0, xmax=40)
 plt.ylim(ymin=1e-4, ymax=35)

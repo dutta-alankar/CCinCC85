@@ -765,4 +765,3 @@ void CheckForAnalysis (Data *d, Runtime *runtime, Grid *grid)
 
   if (check_dt || check_dn) Analysis (d, grid);
 }
-

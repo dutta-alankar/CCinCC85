@@ -61,7 +61,7 @@ all_files = [0, 5, 8, 15]
 
 chi = 100
 analysis = np.loadtxt("../../../threshold/output-tcoolmBytcc_0.01/analysis.dat")
-pos_cloud = interp1d(analysis[:,0]/np.sqrt(chi), analysis[:,0]) 
+pos_cloud = interp1d(analysis[:,0]/np.sqrt(chi), analysis[:,0])
 
 with plt.style.context('dark_background'):
     plt.figure(figsize=(13,10))
@@ -77,7 +77,7 @@ with plt.style.context('dark_background'):
         prs   = np.array(hdf[f"/Timestep_{file_no}/vars/pressure"])
         mach  = np.array(hdf[f"/Timestep_{file_no}/vars/mach"])
         hdf.close()
-        
+
         if (i+1)==len(all_files):
             cloud = pos_cloud(file_no) if (i+1)>1 else rini
             plt.axvline(x = cloud*UNIT_LENGTH/kpc, color = 'lightsalmon', linestyle=":")
@@ -88,4 +88,3 @@ with plt.style.context('dark_background'):
     plt.ylabel(r"Temperature [K]")
     plt.ylim(2e4, 8e6)
 plt.savefig(f"{out_dir}/profile_{len(all_files)}.png", transparent=True)
-

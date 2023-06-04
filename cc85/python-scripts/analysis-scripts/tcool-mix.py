@@ -152,7 +152,7 @@ for i, threshold in enumerate(tcoolmBytcc):
         tcool_mix_ini = kB*T_mix/((np.sqrt(chi)*rhoTini* ((Mdot[i]*(MSun/yr))**1.5) * (Edot[i]**-0.5) * ((Rinj[i]*pc)**-2)/(mu*mp))*LAMBDA(Tcl))/(gamma-1) # CGS
         p = plt.semilogy(data[:,0]/np.sqrt(chi), tcool_mix/tcool_mix_ini)
 
-    
+
 # plt.legend(loc="best", fancybox=True)
 plt.xlim(xmin=0, xmax=40)
 # plt.ylim(ymin=1e-4, ymax=35)
