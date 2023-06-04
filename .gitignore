@@ -225,6 +225,7 @@ cython_debug/
 *.vtk
 *.h5
 *.xmf
+*.tab
 *.out
 *.log
 *.err
@@ -239,6 +240,7 @@ cc85/pluto.ini
 cc85/CatalystAdaptor.h
 cc85/output
 cc85/python-scripts/analysis-scripts/mass-analysis/mass-cold-cloud.txt
+cc85/wind-cooling/output
 
 vanilla/makefile
 vanilla/definitions.h

@@ -78,7 +78,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
    --------------------------------------------------------  */
 
   DOM_LOOP(k,j,i){
-    if (d->Vc[TRC][k][j][i] <= 1.0e-04) continue; // XXX: Ignore Wind Cooling
+    // if (d->Vc[TRC][k][j][i] <= 1.0e-04) continue; // XXX: Ignore Wind Cooling
 
   /* ------------------------------------------------------
      1A. Define global coordinates.
@@ -390,7 +390,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   int n_sub = 0;
   for (n_sub = 0; n_sub<sub_steps; n_sub++ ){
     DOM_LOOP(k,j,i){  /* -- span the computational domain -- */
-      if (d->Vc[TRC][k][j][i] <= 1.0e-04) continue; // XXX: Ignore Wind Cooling
+      //if (d->Vc[TRC][k][j][i] <= 1.0e-04) continue; // XXX: Ignore Wind Cooling
       /* --------------------------------------------------
          Skip integration if cell has been tagged with
          FLAG_INTERNAL_BOUNDARY or FLAG_SPLIT_CELL

@@ -81,7 +81,7 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
   double *dth  = grid->dx[JDIR];
   double *dphi = grid->dx[KDIR];
 
-  if ( (g_time<5.0*sqrt(chi) || ( (g_time>10.0*sqrt(chi)) && (g_time<12.0*sqrt(chi)) )) ){
+  if ( (g_time<5.0*sqrt(chi) || ( (g_time>8.0*sqrt(chi)) && (g_time<12.0*sqrt(chi)) )) ){
     cloud_pos = g_dist_lab;
     return;
   }
