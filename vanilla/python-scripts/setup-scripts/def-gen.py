@@ -66,7 +66,7 @@ PinibykB = 419955.6141084651 #Kcm^-3
 # New parameters
 chi = 100
 Mw = 1.8
-tcoolmBytcc = 0.1
+tcoolmBytcc = 0.4
 Tcl = 4e4 # K
 RinibyRcl = 40
 
