@@ -20,6 +20,7 @@
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
+#include "local_pluto.h"
 
 /* ********************************************************************* */
 void SplitSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
@@ -67,9 +68,10 @@ void SplitSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   RKL (d, dt, Dts, grid);
 #endif
 
-
+#if SCALING != NO
   double scale = calc_scale(d, dt, Dts, grid);
   ApplyWindScaling(d, dt, Dts, grid, scale);
+#endif
 #if TRACKING != NO
   ApplyFrameBoost (d, grid);
 #endif

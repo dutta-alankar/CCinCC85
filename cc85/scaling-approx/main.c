@@ -721,11 +721,6 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
       #endif
       WriteData(d, output, grid);
 
-      #if TRACKING !=NO
-      if (output->type == DBL_H5_OUTPUT)
-        store_or_save_cloud_pos(-1.0, -1.0, 1);
-      #endif
-
     /* ----------------------------------------------------------
         save the file number of the dbl and dbl.h5 output format
         for writing restart.out once we exit the loop.
@@ -744,6 +739,10 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
    ------------------------------------------------------- */
 
   if (restart_update) RestartDump (runtime);
+
+  #if TRACKING !=NO || SCALING != NO
+  if (restart_update) store_or_save_cloud_pos(-1.0, -1.0, 1);
+  #endif
 
   first_call = 0;
 }

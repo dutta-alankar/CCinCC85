@@ -13,17 +13,13 @@
 void ApplyFrameBoost (const Data *d, Grid *grid)
 {
   int i, j, k;
-  double *r   = grid->x[IDIR];
-  double *th  = grid->x[JDIR];
-  double *phi = grid->x[KDIR];
 
   double trc=0., vx_cloud=0.;
-  double dV, vx_val;
+  double dV;
   DOM_LOOP(k,j,i){
     dV = grid->dV[k][j][i]; // Cell volume
     trc         += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
-    vx_val = d->Vc[iVR][k][j][i]*sin(th[j])*cos(phi[k]) + d->Vc[iVPHI][k][j][i]*cos(th[j])*cos(phi[k]) - d->Vc[iVTH][k][j][i]*sin(phi[k]);
-    vx_cloud    += d->Vc[RHO][k][j][i]*vx_val*d->Vc[TRC][k][j][i]*dV;
+    vx_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX1][k][j][i]*d->Vc[TRC][k][j][i]*dV;
   }
   #ifdef PARALLEL
   int transfer_size = 2;
@@ -37,16 +33,8 @@ void ApplyFrameBoost (const Data *d, Grid *grid)
   #endif
   vx_cloud = vx_cloud/trc;
 
-  double vr_cloud, vth_cloud, vphi_cloud;
   TOT_LOOP(k,j,i){
-    vr_cloud   =   vx_cloud*sin(th[j])*cos(phi[k]);
-    vth_cloud  =   vx_cloud*cos(th[j])*cos(phi[k]);
-    vphi_cloud = - vx_cloud*sin(phi[k]);
-
-    d->Vc[iVR][k][j][i]    -= vr_cloud;
-    d->Vc[iVTH][k][j][i]   -= vth_cloud;
-    d->Vc[iVPHI][k][j][i]  -= vphi_cloud;
-
+    d->Vc[VX1][k][j][i]    -= vx_cloud;
     /* Update the conservative variables */
     RBox dom_box;
     RBoxDefine (i, i, j, j, k, k, CENTER, &dom_box);

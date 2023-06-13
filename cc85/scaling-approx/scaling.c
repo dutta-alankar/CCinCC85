@@ -52,9 +52,6 @@ double calc_scale(const Data *d, double dt, timeStep *Dts, Grid *grid)
  *********************************************************************** */
 {
   int i, j, k;
-  double *r   = grid->x[IDIR];
-  double *th  = grid->x[JDIR];
-  double *phi = grid->x[KDIR];
 
   double scale = 0.;
   static int once = 0;
@@ -77,12 +74,11 @@ double calc_scale(const Data *d, double dt, timeStep *Dts, Grid *grid)
   }
 
   double trc=0., vx_cloud=0.;
-  double dV, vx_val;
+  double dV;
   DOM_LOOP(k,j,i){
     dV = grid->dV[k][j][i]; // Cell volume
     trc         += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
-    vx_val = d->Vc[iVR][k][j][i]*sin(th[j])*cos(phi[k]) + d->Vc[iVPHI][k][j][i]*cos(th[j])*cos(phi[k]) - d->Vc[iVTH][k][j][i]*sin(phi[k]);
-    vx_cloud    += d->Vc[RHO][k][j][i]*vx_val*d->Vc[TRC][k][j][i]*dV;
+    vx_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX1][k][j][i]*d->Vc[TRC][k][j][i]*dV;
   }
   #ifdef PARALLEL
   int transfer_size = 2;
@@ -101,6 +97,7 @@ double calc_scale(const Data *d, double dt, timeStep *Dts, Grid *grid)
   store_or_save_cloud_pos(cloud_pos, cloud_vel, 0);
 
   scale = cloud_pos/g_inputParam[RINI];
+  // printLog("Debug: scale = %.3e\n", scale);
   return scale;
 }
 
@@ -117,28 +114,17 @@ void ApplyWindScaling (const Data *d, double dt, timeStep *Dts, Grid *grid, doub
  *********************************************************************** */
 {
   int i, j, k, nv;
-  double *r   = grid->x[IDIR];
-  double *th  = grid->x[JDIR];
-  double *phi = grid->x[KDIR];
 
   // exp_P = Gamma * ed_exp_rho
   double cc85_exp[5] = {-2., -2.0*g_gamma, 0., -1., -1.};
-  double vel_x, vel_y, vel_z;
 
   TOT_LOOP(k,j,i){
-    vel_x = d->Vc[iVR][k][j][i]*sin(th[j])*cos(phi[k]) + d->Vc[iVTH][k][j][i]*cos(th[j])*cos(phi[k]) - d->Vc[iVPHI][k][j][i]*cos(phi[k]);
-    vel_y = d->Vc[iVR][k][j][i]*sin(th[j])*sin(phi[k]) + d->Vc[iVTH][k][j][i]*cos(th[j])*sin(phi[k]) + d->Vc[iVPHI][k][j][i]*cos(phi[k]);
-    vel_z = d->Vc[iVR][k][j][i]*sin(th[j])*sin(phi[k]) + d->Vc[iVTH][k][j][i]*cos(th[j])*sin(phi[k]) + d->Vc[iVPHI][k][j][i]*cos(phi[k]);
-    vel_x     *= pow(scale, cc85_exp[2]);
-    vel_y     *= pow(scale, cc85_exp[3]);
-    vel_z     *= pow(scale, cc85_exp[4]);
-
     d->Vc[RHO][k][j][i]     *= pow(scale, cc85_exp[0]);
     d->Vc[PRS][k][j][i]     *= pow(scale, cc85_exp[1]);
 
-    d->Vc[iVR][k][j][i]   =   vel_x*sin(th[j])*cos(phi[k]) + vel_y*sin(th[j])*sin(phi[k]) + vel_z*cos(th[j]);
-    d->Vc[iVTH][k][j][i]  =   vel_x*cos(th[j])*cos(phi[k]) + vel_y*cos(th[j])*sin(phi[k]) - vel_z*sin(th[j]);
-    d->Vc[iVPHI][k][j][i] = - vel_x*sin(phi[k]) + vel_y*cos(phi[k]);
+    d->Vc[VX1][k][j][i]     *= pow(scale, cc85_exp[2]);
+    d->Vc[VX2][k][j][i]     *= pow(scale, cc85_exp[3]);
+    d->Vc[VX3][k][j][i]     *= pow(scale, cc85_exp[4]);
 
     d->Vc[TRC][k][j][i]     *= 1.;
 

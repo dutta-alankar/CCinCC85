@@ -83,41 +83,31 @@ void InitDomain (Data *d, Grid *grid)
   g_smallPressure = (nmin*Tcutoff*CONST_kB)/(UNIT_DENSITY*pow(UNIT_VELOCITY,2));
 
   double rIni        = g_inputParam[RINI]; //Enter cloud position in Rcl
-  double thIni       = g_inputParam[THINI]*CONST_PI/180;
-  double phiIni      = g_inputParam[PHIINI]*CONST_PI/180;
   double chi         = g_inputParam[CHI];
   double mach        = g_inputParam[MACH];
 
   g_dist_lab   = rIni; //Seed cloud position in pc wrt wind center
 
   int i, j, k;
-  double *r   = grid->x[IDIR];
-  double *th  = grid->x[JDIR];
-  double *phi = grid->x[KDIR];
+  double *x = grid->x[IDIR];
+  double *y = grid->x[JDIR];
+  double *z = grid->x[KDIR];
 
-  double xIni = rIni*sin(thIni)*cos(phiIni);
-  double yIni = rIni*sin(thIni)*sin(phiIni);
-  double zIni = rIni*cos(thIni);
+  double xIni = rIni;
+  double yIni = 0.;
+  double zIni = 0.;
   TOT_LOOP(k,j,i){
-    double x = r[i]*sin(th[j])*cos(phi[k]);
-    double y = r[i]*sin(th[j])*sin(phi[k]);
-    double z = r[i]*cos(th[j]);
-
-    //sqrt(r[i]*r[i] + rIni*rIni - 2*r[i]*rIni*( sin(th[j])*sin(thIni)*cos(phi[k]-phiIni) + cos(th[j])*cos(thIni) ));
-    double R = sqrt( (x-xIni)*(x-xIni) + (y-yIni)*(y-yIni) + (z-zIni)*(z-zIni) );
-    double distance = r[i];
+    double R = sqrt( (x[i]-xIni)*(x[i]-xIni) + (y[j]-yIni)*(y[j]-yIni) + (z[k]-zIni)*(z[k]-zIni) );
 
     d->Vc[RHO][k][j][i]   = 1.;
     d->Vc[PRS][k][j][i]   = 1./(g_gamma*mach*mach);
-    d->Vc[iVR][k][j][i]   =  sin(th[j])*cos(phi[k]);
-    d->Vc[iVTH][k][j][i]  =  cos(th[j])*cos(phi[k]);
-    d->Vc[iVPHI][k][j][i] = -sin(phi[k]);
+    d->Vc[VX1][k][j][i]   = 1.0;
+    d->Vc[VX2][k][j][i]   = 0.;
+    d->Vc[VX3][k][j][i]   = 0.;
     d->Vc[TRC][k][j][i]   = 0.;
     if (R <= 1.0) {
       d->Vc[RHO][k][j][i]   = chi;
-      d->Vc[iVR][k][j][i]   =  0.;
-      d->Vc[iVTH][k][j][i]  =  0.;
-      d->Vc[iVPHI][k][j][i] =  0.;
+      d->Vc[VX1][k][j][i]   =  0.;
       d->Vc[TRC][k][j][i]   =  1.;
     }
   } /* TOT_LOOP(k,j,i)  */
@@ -137,13 +127,13 @@ void Analysis (const Data *d, Grid *grid)
   int yr = 365*24*60*60;
   static double trc0 = 0.;
   static double trc0_all = 0.;
-  static double rIni, thIni, phiIni, chi, mach, tcc, factor, Tcl, mu, rho_cl;
+  static double rIni, chi, mach, tcc, factor, Tcl, mu, rho_cl;
   static int first = 0;
   static long int nstep = -1;
   double temperature_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
   double rho_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
 
-  double *r  = grid->x[IDIR];
+  double *x  = grid->x[IDIR];
   double tanl;
 
   if (first==0) {
@@ -152,8 +142,6 @@ void Analysis (const Data *d, Grid *grid)
     mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
 
     rIni        = g_inputParam[RINI]; // cloud position in units of Rcl
-    thIni       = g_inputParam[THINI]*CONST_PI/180;
-    phiIni      = g_inputParam[PHIINI]*CONST_PI/180;
     chi         = g_inputParam[CHI];
     mach        = g_inputParam[MACH];
 
@@ -207,8 +195,8 @@ void Analysis (const Data *d, Grid *grid)
 
   double      trc   = 0.,      trc_all    = 0.;
   double mass_dense = 0., mass_dense_all  = 0.;
-  double vr_cloud = 0., vt_cloud = 0., vp_cloud = 0.;
-  double vr_cloud_all = 0., vt_cloud_all = 0., vp_cloud_all = 0.;
+  double vx_cloud = 0., vy_cloud = 0., vz_cloud = 0.;
+  double vx_cloud_all = 0., vy_cloud_all = 0., vz_cloud_all = 0.;
 
   double mass_cold[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
   double mass_cold_all[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
@@ -233,9 +221,9 @@ void Analysis (const Data *d, Grid *grid)
   DOM_LOOP(k,j,i){
     dV = grid->dV[k][j][i]; // Cell volume
     trc         += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
-    vr_cloud    += d->Vc[RHO][k][j][i]*d->Vc[iVR][k][j][i]*d->Vc[TRC][k][j][i]*dV;
-    vt_cloud    += d->Vc[RHO][k][j][i]*d->Vc[iVTH][k][j][i]*d->Vc[TRC][k][j][i]*dV;
-    vp_cloud    += d->Vc[RHO][k][j][i]*d->Vc[iVPHI][k][j][i]*d->Vc[TRC][k][j][i]*dV;
+    vx_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX1][k][j][i]*d->Vc[TRC][k][j][i]*dV;
+    vy_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX2][k][j][i]*d->Vc[TRC][k][j][i]*dV;
+    vz_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX3][k][j][i]*d->Vc[TRC][k][j][i]*dV;
 
     if(d->Vc[RHO][k][j][i] >= (rho_cl/factor))
       mass_dense += d->Vc[RHO][k][j][i]*dV;
@@ -270,7 +258,7 @@ void Analysis (const Data *d, Grid *grid)
   for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
     sendArray[transfer++] = mass_cloud[cloud_indx];
   }
-  sendArray[transfer++] = vr_cloud; sendArray[transfer++] = vt_cloud; sendArray[transfer++] = vp_cloud;
+  sendArray[transfer++] = vx_cloud; sendArray[transfer++] = vy_cloud; sendArray[transfer++] = vz_cloud;
   MPI_Allreduce (sendArray, recvArray, transfer_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // TODO: Replace this with Allreduce to improve on communication overhead
   transfer = 0;
   trc_all = recvArray[transfer++]; mass_dense_all = recvArray[transfer++];
@@ -280,7 +268,7 @@ void Analysis (const Data *d, Grid *grid)
   for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
     mass_cloud_all[cloud_indx] = recvArray[transfer++];
   }
-  vr_cloud_all = recvArray[transfer++]; vt_cloud_all = recvArray[transfer++]; vp_cloud_all = recvArray[transfer++];
+  vx_cloud_all = recvArray[transfer++]; vy_cloud_all = recvArray[transfer++]; vz_cloud_all = recvArray[transfer++];
 
   #else
   trc_all    = trc;
@@ -292,13 +280,13 @@ void Analysis (const Data *d, Grid *grid)
   for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
     mass_cloud_all[cloud_indx] = mass_cloud[cloud_indx];
   }
-  vr_cloud_all    = vr_cloud;
-  vt_cloud_all    = vt_cloud;
-  vp_cloud_all    = vp_cloud;
+  vx_cloud_all    = vx_cloud;
+  vy_cloud_all    = vy_cloud;
+  vz_cloud_all    = vz_cloud;
   #endif
-  vr_cloud_all = vr_cloud_all/trc_all;
-  vt_cloud_all = vt_cloud_all/trc_all;
-  vp_cloud_all = vp_cloud_all/trc_all;
+  vx_cloud_all = vx_cloud_all/trc_all;
+  vy_cloud_all = vy_cloud_all/trc_all;
+  vz_cloud_all = vz_cloud_all/trc_all;
   trc_all     = trc_all/trc0_all; // trc0_all is M_cloud, ini
   mass_dense_all = mass_dense_all/trc0_all;
   for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
@@ -308,7 +296,7 @@ void Analysis (const Data *d, Grid *grid)
     mass_cloud_all[cloud_indx] = mass_cloud_all[cloud_indx]/trc0_all;
   }
 
-  double v_cloud = sqrt(vr_cloud_all*vr_cloud_all + vt_cloud_all*vt_cloud_all + vp_cloud_all*vp_cloud_all);
+  double v_cloud = sqrt(vx_cloud_all*vx_cloud_all + vy_cloud_all*vy_cloud_all + vz_cloud_all*vz_cloud_all);
 
   /* ---- Write ascii file "analysis.dat" to disk ---- */
   if (prank == 0){
@@ -427,37 +415,32 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   double oth_mu[4];
   double  mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
 
-  double *r   = grid->x[IDIR];
-  double *th  = grid->x[JDIR];
-  double *phi = grid->x[KDIR];
+  double *x   = grid->x[IDIR];
 
-  double *dr   = grid->dx[IDIR];
-  double *dth  = grid->dx[JDIR];
-  double *dphi = grid->dx[KDIR];
+  double *dx   = grid->dx[IDIR];
+
 
   double rIni        = g_inputParam[RINI]; //Enter cloud position in Rcl
-  double thIni       = g_inputParam[THINI]*CONST_PI/180;
-  double phiIni      = g_inputParam[PHIINI]*CONST_PI/180;
   double chi         = g_inputParam[CHI];
   double mach        = g_inputParam[MACH];
 
   double Tcl         = pow(UNIT_VELOCITY/mach,2)*(mu*CONST_mp)/(g_gamma*CONST_kB*chi); //in K
 
   /* set steady wid profile at the boundary */
-  if (side == X1_BEG || side == X2_BEG || side == X3_BEG || side == X1_END || side == X2_END || side == X3_END){
+  if (side == X1_BEG) {
     /* -- select the boundary side -- */
-    BOX_LOOP(box,k,j,i){ /* -- Loop over boundary zones -- */
+    BOX_LOOP(box,k,j,i) { /* -- Loop over boundary zones -- */
       d->Vc[RHO][k][j][i]   = 1.;
       d->Vc[PRS][k][j][i]   = 1./(g_gamma*mach*mach);
-      d->Vc[iVR][k][j][i]   =  sin(th[j])*cos(phi[k]);
-      d->Vc[iVTH][k][j][i]  =  cos(th[j])*cos(phi[k]);
-      d->Vc[iVPHI][k][j][i] = -sin(phi[k]);
+      d->Vc[VX1][k][j][i]   = 1.0;
+      d->Vc[VX2][k][j][i]   = 0.;
+      d->Vc[VX3][k][j][i]   = 0.;
       d->Vc[TRC][k][j][i]   = 0.;
     }
   }
 
   /* set temperature floor */
-  if (side == 0){ // -- select active cells --
+  if (side == 0) { // -- select active cells --
     RBox dom_box;
     double gasTemperature;
     double Tcutoff = Tcl;

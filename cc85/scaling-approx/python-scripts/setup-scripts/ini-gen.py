@@ -10,7 +10,7 @@ constants_add_misc = importlib.import_module("def-gen")
 globals().update(vars(constants_add_misc)) #imported variables
 
 Rclbydcell  = 16 #resolution
-Npar   = 300
+Npar   = 100
 Nprp   = 10
 Nleft  = 5
 
@@ -22,19 +22,14 @@ Rcl      = 1.0 # code units
 tcc      = np.sqrt(chi) # code units
 
 dr     = Rcl/Rclbydcell # code units
-dth    = Rcl/(Rini*Rclbydcell)
-dph    = dth
 
-Rbeg   = Rini-Nleft*Rcl # code units
-Rend   = int(np.ceil(Rbeg + Npar*Rcl)) # code units
-thbeg  = np.pi/2 - Nprp*Rcl/(2*Rini)
-thend  = np.pi/2 + Nprp*Rcl/(2*Rini)
-phbeg  = - Nprp*Rcl/(2*Rini)
-phend  =   Nprp*Rcl/(2*Rini)
+Rbeg    = Rini-Nleft*Rcl # code units
+Rend    =  int(np.ceil(Rbeg + Npar*Rcl)) # code units
+prpbeg  = -int(np.ceil(0.5*Nprp*Rcl)) # code units
+prpend  =  int(np.ceil(0.5*Nprp*Rcl)) # code units
 
-Nr     = int(np.ceil((Rend-Rbeg)/dr))
-Nth    = int(np.ceil((thend-thbeg)/dth))
-Nph    = Nth
+Nr      = int(np.ceil((Rend-Rbeg)/dr))
+Nprp    = int(np.ceil((prpend-prpbeg)/dr))
 
 cfl    = 0.2
 tstop  = 4.0*tcc*np.sqrt(chi)
@@ -44,15 +39,15 @@ dt_analysis = 1e-1*tcc
 output_dir = './output'
 log_dir    = './output/Log_Files'
 
-print('Resolution (%d, %d, %d)'%(Nr, Nth, Nph))
+print('Resolution (%d, %d, %d)'%(Nr, Nprp, Nprp))
 if (Rbeg/Rini*Rbarini <= 1.0 ): print('Problem! Injection region included!')
 
 pluto_ini = f"""
 [Grid]
 
 X1-grid    1     {Rbeg:<8.2f}     {Nr:<5}       u        {Rend:.2f}
-X2-grid    1     {thbeg:<9.2f}    {Nth:<6}      u        {thend:.2f}
-X3-grid    1     {phbeg:<9.2f}    {Nph:<6}      u        {phend:.2f}
+X2-grid    1     {prpbeg:<9.2f}    {Nprp:<6}      u        {prpend:.2f}
+X3-grid    1     {prpbeg:<9.2f}    {Nprp:<6}      u        {prpend:.2f}
 
 [Chombo Refinement]
 
@@ -79,21 +74,21 @@ Solver         hllc
 [Boundary]
 
 X1-beg        userdef
-X1-end        userdef
-X2-beg        userdef
-X2-end        userdef
-X3-beg        userdef
-X3-end        userdef
+X1-end        outflow
+X2-beg        outflow
+X2-end        outflow
+X3-beg        outflow
+X3-end        outflow
 
 [Static Grid Output]
 
-uservar    6    temperature ndens mach cellvol delTbyTwind delRhoByRhoWind
+uservar    4    temperature ndens mach cellvol
 output_dir {output_dir}
 log_dir    {log_dir}
 dbl       -1.0          -1   single_file
 flt       -1.0          -1   single_file
 vtk       -1.0          -1   single_file
-dbl.h5    -1.0          -1   single_file
+dbl.h5    {10.*tcc:<8.2e}      -1   single_file
 flt.h5    {1.0*tcc:<8.2e}      -1   single_file
 tab       -1.0          -1
 ppm       -1.0          -1
@@ -117,8 +112,6 @@ particles_tab       -1.0   -1
 [Parameters]
 
 RINI                        {Rini:.2f}
-THINI                       90.0
-PHIINI                      0.0
 CHI                         {chi:.2f}
 MACH                        {Mw:.2f}
 ZMET                        1.0

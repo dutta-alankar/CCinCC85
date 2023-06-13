@@ -127,7 +127,7 @@ f'''
 #define  PHYSICS                        HD
 #define  DIMENSIONS                     3
 #define  COMPONENTS                     3
-#define  GEOMETRY                       SPHERICAL
+#define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
 #define  FORCED_TURB                    NO
 #define  COOLING                        TABULATED
@@ -135,7 +135,7 @@ f'''
 #define  TIME_STEPPING                  RK2
 #define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        1
-#define  USER_DEF_PARAMETERS            6
+#define  USER_DEF_PARAMETERS            4
 
 /* -- physics dependent declarations -- */
 
@@ -149,15 +149,14 @@ f'''
 #define  SHOW_TIMING                    NO
 #define  SHOW_TIME_STEPS                YES
 #define  TRACKING                       YES
+#define  SCALING                        YES
 
 /* -- user-defined parameters (labels) -- */
 
 #define  RINI                           0
-#define  THINI                          1
-#define  PHIINI                         2
-#define  CHI                            3
-#define  MACH                           4
-#define  ZMET                           5
+#define  CHI                            1
+#define  MACH                           2
+#define  ZMET                           3
 
 /* [Beg] user-defined constants (do not change this line) */
 

@@ -182,7 +182,7 @@ void InitDomain (Data *d, Grid *grid)
     d->Vc[iVPHI][k][j][i] = 0.;
     d->Vc[TRC][k][j][i]   = 0.;
     if (R <= 1.0) {
-      // d->Vc[RHO][k][j][i]  = chi*d->Vc[RHO][k][j][i];
+      d->Vc[RHO][k][j][i]  = chi*d->Vc[RHO][k][j][i]; // TST : Don't change density
       d->Vc[iVR][k][j][i]  = 0.;
       d->Vc[TRC][k][j][i]  = 1.;
     }
