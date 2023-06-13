@@ -10,7 +10,7 @@
 #include "pluto.h"
 #include "local_pluto.h"
 
-void ApplyFrameBoost (const Data *d, Grid *grid)
+double ApplyFrameBoost (const Data *d, Grid *grid)
 {
   int i, j, k;
 
@@ -40,4 +40,5 @@ void ApplyFrameBoost (const Data *d, Grid *grid)
     RBoxDefine (i, i, j, j, k, k, CENTER, &dom_box);
     PrimToCons3D(d->Vc, d->Uc, &dom_box);
   }
+  return vx_cloud;
 }

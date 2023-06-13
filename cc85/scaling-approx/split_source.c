@@ -68,12 +68,16 @@ void SplitSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   RKL (d, dt, Dts, grid);
 #endif
 
-#if SCALING != NO
-  double scale = calc_scale(d, dt, Dts, grid);
-  ApplyWindScaling(d, dt, Dts, grid, scale);
-#endif
 #if TRACKING != NO
-  ApplyFrameBoost (d, grid);
+  double vx_cloud = ApplyFrameBoost (d, grid);
 #endif
 
+#if SCALING != NO
+  #if TRACKING != NO
+  double scale = calc_scale(vx_cloud, dt);
+  #else
+  double scale = calc_scale(-1.0, dt);
+  #endif
+  ApplyWindScaling(d, dt, Dts, grid, scale);
+#endif
 }
