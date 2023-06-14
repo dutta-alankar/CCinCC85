@@ -10,9 +10,9 @@ constants_add_misc = importlib.import_module("def-gen")
 globals().update(vars(constants_add_misc)) #imported variables
 
 Rclbydcell  = 16 #resolution
-Npar   = 100
+Npar   = 25
 Nprp   = 10
-Nleft  = 5
+Nleft  = 10
 
 Rbarini  = Rini/Rinj
 Rinj     = Rinj/Rcl # code units

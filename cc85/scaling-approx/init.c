@@ -106,8 +106,10 @@ void InitDomain (Data *d, Grid *grid)
     d->Vc[VX3][k][j][i]   = 0.;
     d->Vc[TRC][k][j][i]   = 0.;
     if (R <= 1.0) {
+      #if WIND_TEST == NO
       d->Vc[RHO][k][j][i]   = chi;
       d->Vc[VX1][k][j][i]   =  0.;
+      #endif
       d->Vc[TRC][k][j][i]   =  1.;
     }
   } /* TOT_LOOP(k,j,i)  */
@@ -147,7 +149,7 @@ void Analysis (const Data *d, Grid *grid)
 
     tcc      = sqrt(chi);
     factor   = sqrt(chi)/3;
-    Tcl      = pow(UNIT_VELOCITY/mach,2)*(mu*CONST_mp)/(g_gamma*CONST_kB*chi); //in K
+    Tcl      = pow(UNIT_VELOCITY/mach,2)*(mu*CONST_mp)/(g_gamma*CONST_kB*chi); //in K just Twind/chi
     rho_cl   = chi;
   }
   if (g_stepNumber==0){
@@ -338,7 +340,12 @@ void Analysis (const Data *d, Grid *grid)
       for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
         fprintf(fp,"(%d)%s\t\t", ++cont, cloud_header[cloud_indx]);
       }
-      fprintf (fp, "(%d)dt (code)\n", ++cont);
+      fprintf (fp, "(%d)dt (code)\t\t", ++cont);
+      #if WIND_TEST != NO
+      fprintf (fp, "(%d)rho (code)\n", ++cont);
+      #else
+      fprintf (fp, "\n");
+      #endif
       fclose(fp);
     }
     /* Append numeric data */
@@ -351,8 +358,15 @@ void Analysis (const Data *d, Grid *grid)
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
       fprintf (fp, "%12.6e\t\t\t", mass_cloud_all[cloud_indx]);
     }
-    fprintf (fp, "%12.6e\n", g_dt);
+    #if WIND_TEST != NO
+    double tmp;
+    DOM_LOOP(k, j, i) tmp = d->Vc[RHO][k][j][i];
+    fprintf (fp, "%12.6e\t\t%12.6e\n", g_dt, tmp);
     fclose(fp);
+    #else
+    fprintf (fp, "%12.6e\t\t\n", g_dt);
+    fclose(fp);
+    #endif
 
     /* Write restart file */
     //printLog("Step %d: Writing Analysis restart!\n", g_stepNumber);
@@ -420,22 +434,39 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   double *dx   = grid->dx[IDIR];
 
 
-  double rIni        = g_inputParam[RINI]; //Enter cloud position in Rcl
+  double rIni        = g_inputParam[RINI]; // Enter cloud position in Rcl
   double chi         = g_inputParam[CHI];
   double mach        = g_inputParam[MACH];
 
   double Tcl         = pow(UNIT_VELOCITY/mach,2)*(mu*CONST_mp)/(g_gamma*CONST_kB*chi); //in K
 
+  /*
+  #if SCALING != NO
+  double scale = g_dist_lab/rIni;
+  double cc85_exp[5] = {-2., -2.0*g_gamma, 0., -1., -1.};
+  #endif
+  */
   /* set steady wid profile at the boundary */
+  /*
   if (side == X1_BEG) {
     /* -- select the boundary side -- */
-    BOX_LOOP(box,k,j,i) { /* -- Loop over boundary zones -- */
+    /*
+    BOX_LOOP(box,k,j,i) { /* -- Loop over boundary zones -- *//*
       d->Vc[RHO][k][j][i]   = 1.;
       d->Vc[PRS][k][j][i]   = 1./(g_gamma*mach*mach);
       d->Vc[VX1][k][j][i]   = 1.0;
       d->Vc[VX2][k][j][i]   = 0.;
       d->Vc[VX3][k][j][i]   = 0.;
       d->Vc[TRC][k][j][i]   = 0.;
+      /*
+      #if SCALING != NO
+      d->Vc[RHO][k][j][i]     *= pow(scale, cc85_exp[0]);
+      d->Vc[PRS][k][j][i]     *= pow(scale, cc85_exp[1]);
+      d->Vc[VX1][k][j][i]     *= pow(scale, cc85_exp[2]);
+      d->Vc[VX2][k][j][i]     *= pow(scale, cc85_exp[3]);
+      d->Vc[VX3][k][j][i]     *= pow(scale, cc85_exp[4]);
+      #endif
+      *//*
     }
   }
 
@@ -452,7 +483,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
     double mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
     double rhomin  = (nmin*((CONST_mp*mu)/UNIT_DENSITY));
 
-    TOT_LOOP(k,j,i){ // -- Loop over all cells --
+    TOT_LOOP(k,j,i) { // -- Loop over all cells --
       int convert_to_cons = 0;
       gasTemperature = ((d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB);
       if (gasTemperature<Tcutoff){

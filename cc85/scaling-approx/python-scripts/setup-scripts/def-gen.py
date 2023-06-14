@@ -150,6 +150,7 @@ f'''
 #define  SHOW_TIME_STEPS                YES
 #define  TRACKING                       YES
 #define  SCALING                        YES
+#define  WIND_TEST                      NO
 
 /* -- user-defined parameters (labels) -- */
 

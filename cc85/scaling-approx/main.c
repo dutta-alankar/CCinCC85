@@ -261,6 +261,18 @@ int main (int argc, char *argv[])
 
     }
 
+    #if TRACKING != NO
+    double vx_cloud = ApplyFrameBoost (&data, grd);
+    #endif
+
+    #if SCALING != NO
+    #if TRACKING != NO
+    double scale = calc_scale(vx_cloud, g_dt);
+    #else
+    double scale = calc_scale(-1.0, g_dt);
+    #endif
+    ApplyWindScaling(&data, g_dt, grd, scale);
+    #endif
 
   /* ----------------------------------------------------
      1g. Increment time, t(n+1) = t(n) + dt(n)
@@ -728,6 +740,10 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
 
       if ((output->type == DBL_OUTPUT) ||
           (output->type == DBL_H5_OUTPUT)) restart_update = 1;
+
+      #if TRACKING !=NO || SCALING != NO
+      store_or_save_cloud_pos(-1.0, -1.0, 1);
+      #endif
     }
   }
 
@@ -739,10 +755,6 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
    ------------------------------------------------------- */
 
   if (restart_update) RestartDump (runtime);
-
-  #if TRACKING !=NO || SCALING != NO
-  if (restart_update) store_or_save_cloud_pos(-1.0, -1.0, 1);
-  #endif
 
   first_call = 0;
 }
