@@ -48,14 +48,14 @@ matplotlib.rcParams["legend.handlelength"] = 2
 matplotlib.rcParams["axes.axisbelow"] = True
 
 out_dir = "profile-plots"
-os.makedirs(f"./{out_dir}/", exist_ok=True)
+os.makedirs(f"./{out_dir}/", exist_ok=True)               
 
-UNIT_DENSITY = 6.3682e-26
-UNIT_LENGTH = 2.7198e+20
-UNIT_VELOCITY = 5.4100e+07
+UNIT_DENSITY = 2.5473e-25
+UNIT_LENGTH = 7.0827e+18
+UNIT_VELOCITY = 4.5084e+07
 
 kpc = 3.086e+21
-rini = 40
+rini = 200
 
 all_files = [0, 5, 8, 15]
 
@@ -80,11 +80,11 @@ with plt.style.context('dark_background'):
 
         if (i+1)==len(all_files):
             cloud = pos_cloud(file_no) if (i+1)>1 else rini
-            plt.axvline(x = cloud*UNIT_LENGTH/kpc, color = 'lightsalmon', linestyle=":")
+            # plt.axvline(x = cloud*UNIT_LENGTH/kpc, color = 'lightsalmon', linestyle=":")
         # plt.loglog(rad/rini, ndens)
         # plt.loglog(rad/rini, prs)
         plt.semilogy(rad*UNIT_LENGTH/kpc, temp, linestyle="--" if (i+1)<len(all_files) else "-", color="turquoise")
     plt.xlabel(r"Distance [kpc]")
     plt.ylabel(r"Temperature [K]")
-    plt.ylim(2e4, 8e6)
+    # plt.ylim(2e4, 8e6)
 plt.savefig(f"{out_dir}/profile_{len(all_files)}.png", transparent=True)

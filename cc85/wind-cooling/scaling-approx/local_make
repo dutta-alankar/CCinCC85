@@ -1,0 +1,23 @@
+ifeq ($(strip $(PARALLEL)), TRUE)
+ LDFLAGS      += -L/modules/comp_libs/hdf5/parallel/lib -lhdf5 -lz
+ INCLUDE_DIRS += -I/modules/comp_libs/hdf5/parallel/include
+endif
+
+ifeq ($(strip $(PARALLEL)), FALSE)
+ LDFLAGS      += -L/modules/comp_libs/hdf5/serial/lib -lhdf5 -lz
+ INCLUDE_DIRS += -I/modules/comp_libs/hdf5/serial/include
+endif
+
+ CFLAGS       += -g -DUSE_HDF5 # -DH5_USE_16_API
+ OBJ          += hdf5_io.o
+
+ OBJ          += scaling.o frame_boost.o
+
+ # CFLAGS      += -DUSE_PNG
+ # LDFLAGS     += -L$(PNG_LIB)/lib -lpng
+ # LDFLAGS     += -lgsl -lgslcblas
+
+ # INCLUDE_DIRS += -I/u/adutt/comp_libs/catalyst/include/catalyst-2.0
+ # LDFLAGS      += -L/u/adutt/comp_libs/catalyst/lib64 -lcatalyst
+ # CFLAGS       += -DUSE_CATALYST # -DCATALYST_VERBOSE
+ # CFLAGS       += -DPARAVIEW_IMPL_DIR=\"/u/adutt/ParaView-5.11.0-osmesa-MPI-Linux-Python3.9-x86_64/lib/catalyst\"

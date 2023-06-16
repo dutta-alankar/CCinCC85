@@ -10,9 +10,9 @@ constants_add_misc = importlib.import_module("def-gen")
 globals().update(vars(constants_add_misc)) #imported variables
 
 Rclbydcell  = 16 #resolution
-Npar   = 25
-Nprp   = 10
-Nleft  = 10
+Npar   = 300
+Nprp   = 20
+Nleft  = 120
 
 Rbarini  = Rini/Rinj
 Rinj     = Rinj/Rcl # code units
@@ -40,7 +40,6 @@ output_dir = './output'
 log_dir    = './output/Log_Files'
 
 print('Resolution (%d, %d, %d)'%(Nr, Nprp, Nprp))
-if (Rbeg/Rini*Rbarini <= 1.0 ): print('Problem! Injection region included!')
 
 pluto_ini = f"""
 [Grid]

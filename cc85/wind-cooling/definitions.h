@@ -35,9 +35,9 @@
 
 /* [Beg] user-defined constants (do not change this line) */
 
-#define  UNIT_DENSITY                   6.3682e-26
-#define  UNIT_LENGTH                    2.7198e+20
-#define  UNIT_VELOCITY                  5.4100e+07
+#define  UNIT_DENSITY                   2.5473e-25
+#define  UNIT_LENGTH                    7.0827e+18
+#define  UNIT_VELOCITY                  4.5084e+07
 
 /* [End] user-defined constants (do not change this line) */
 #define  MULTIPLE_LOG_FILES             YES

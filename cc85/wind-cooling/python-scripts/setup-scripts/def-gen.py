@@ -54,32 +54,15 @@ velnorm = interp1d(rnorm, wind[:,3])
 
 LAMBDA = np.loadtxt('../../cooltable.dat')
 LAMBDA = interp1d(LAMBDA[:,0], LAMBDA[:,1], fill_value='extrapolate')
-'''
-# Max's parameters
+
+# New parameters
 chi = 100
 Mw = 1.5
 tcoolmBytcc = 0.08
-RinibyRcl = 200
-Tcl = 4e4 #K
-
-PinibykB = 1e3 #Kcm^-3, degenerate
-
-# Our model params
-chi = 1143
-Mw = 4.993191399557429
-tcoolmBytcc = 0.003304105670882433
-RinibyRcl = 625/75
-Tcl = 1e4 #K
-PinibykB = 419955.6141084651 #Kcm^-3
-'''
-# New parameters
-chi = 100
-Mw = 1.8
-tcoolmBytcc = 0.01
 Tcl = 4e4 # K
-RinibyRcl = 40
+RinibyRcl = 200
 
-PinibykB = 2.5e5 # Kcm^-3, degenerate
+PinibykB = 1.0e+06 # Kcm^-3, degenerate
 
 Tw = chi*Tcl
 Pw = PinibykB*kB

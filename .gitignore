@@ -246,6 +246,15 @@ cc85/scaling-approx/CatalystAdaptor.h
 cc85/scaling-approx/pluto.ini
 cc85/scaling-approx/definitions.h
 cc85/scaling-approx/makefile
+cc85/wind-cooling/dummy-cloud/
+cc85/wind-cooling/dummy-cloud/makefile
+cc85/wind-cooling/dummy-cloud/definitions.h
+cc85/wind-cooling/dummy-cloud/pluto.ini
+cc85/wind-cooling/dummy-cloud/output
+cc85/wind-cooling/scaling-approx/makefile
+cc85/wind-cooling/scaling-approx/definitions.h
+cc85/wind-cooling/scaling-approx/pluto.ini
+cc85/wind-cooling/scaling-approx/output
 
 vanilla/makefile
 vanilla/definitions.h
