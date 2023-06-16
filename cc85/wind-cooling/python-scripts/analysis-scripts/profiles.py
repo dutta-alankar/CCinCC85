@@ -48,7 +48,7 @@ matplotlib.rcParams["legend.handlelength"] = 2
 matplotlib.rcParams["axes.axisbelow"] = True
 
 out_dir = "profile-plots"
-os.makedirs(f"./{out_dir}/", exist_ok=True)               
+os.makedirs(f"./{out_dir}/", exist_ok=True)
 
 UNIT_DENSITY = 2.5473e-25
 UNIT_LENGTH = 7.0827e+18

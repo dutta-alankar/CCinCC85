@@ -159,5 +159,3 @@ plt.legend(loc="best")
 plt.xlabel(r"$r/R_{cl}$")
 plt.ylabel(r"Temperature $(\times 10^6\ K)$")
 plt.savefig("compare-setups.png")
-
-

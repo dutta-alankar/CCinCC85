@@ -158,4 +158,3 @@ plt.ylabel(r"velocity ($km/s$)")
 plt.legend(loc="best")
 plt.xlim(xmin=RinibyRcl-15, xmax=700)
 plt.savefig("compare-velocities.png")
-

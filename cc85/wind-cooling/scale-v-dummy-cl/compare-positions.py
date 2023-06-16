@@ -61,4 +61,3 @@ plt.legend(loc="best")
 plt.xlim(xmin=0, xmax=400)
 plt.ylim(ymin=rInibyRcl)
 plt.savefig("compare-position.png")
-
