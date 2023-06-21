@@ -23,6 +23,9 @@ void ApplyWindScaling (const Data *d, double dt, Grid *grid, double scale)
  *********************************************************************** */
 {
   int i, j, k;
+  int iend = grid->lend[IDIR] + grid->nghost[IDIR];
+  int jend = grid->lend[JDIR] + grid->nghost[JDIR];
+  int kend = grid->lend[KDIR] + grid->nghost[KDIR];
   // printLog("Debug Wind: scale = %.3e\n", scale);
   // exp_P = Gamma * ed_exp_rho
   double cc85_exp[5] = {-2., -2.0*g_gamma, 0., -1., -1.};
@@ -41,6 +44,20 @@ void ApplyWindScaling (const Data *d, double dt, Grid *grid, double scale)
   double Tmax    = 1.e8;
   double nmin    = 1e-6;
   double rhomin  = (nmin*((CONST_mp*mu)/UNIT_DENSITY));
+
+  JTOT_LOOP(j) {
+    grid->x[JDIR][j]  *= pow(scale, 1.0);
+    grid->xr[JDIR][j] *= pow(scale, 1.0);
+    grid->xl[JDIR][j] *= pow(scale, 1.0);
+    grid->dx[JDIR][j] *= pow(scale, 1.0);
+  }
+  KTOT_LOOP(k) {
+    grid->x[KDIR][k]  *= pow(scale, 1.0);
+    grid->xr[KDIR][k] *= pow(scale, 1.0);
+    grid->xl[KDIR][k] *= pow(scale, 1.0);
+    grid->dx[KDIR][k] *= pow(scale, 1.0);
+  }
+  SetGeometry(grid);
 
   TOT_LOOP(k,j,i){
     d->Vc[RHO][k][j][i]     *= pow(scale, cc85_exp[0]);

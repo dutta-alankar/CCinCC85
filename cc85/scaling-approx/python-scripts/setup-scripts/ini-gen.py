@@ -9,10 +9,10 @@ import importlib
 constants_add_misc = importlib.import_module("def-gen")
 globals().update(vars(constants_add_misc)) #imported variables
 
-Rclbydcell  = 16 #resolution
-Npar   = 300
-Nprp   = 20
-Nleft  = 120
+Rclbydcell  = 8 #resolution
+Npar   = 230
+Nprp   = 40
+Nleft  = 100
 
 Rbarini  = Rini/Rinj
 Rinj     = Rinj/Rcl # code units
@@ -72,7 +72,7 @@ Solver         hllc
 
 [Boundary]
 
-X1-beg        userdef
+X1-beg        outflow
 X1-end        outflow
 X2-beg        outflow
 X2-end        outflow

@@ -84,7 +84,7 @@ X3-end        outflow
 
 [Static Grid Output]
 
-uservar    3    temperature ndens mach
+uservar    4    temperature ndens mach cellvol
 output_dir {output_dir}
 log_dir    {log_dir}
 dbl       -1.0          -1   single_file
@@ -92,7 +92,7 @@ flt       -1.0          -1   single_file
 vtk       -1.0          -1   single_file
 dbl.h5    -1.0          -1   single_file
 flt.h5    {1.0*tcc:<8.2e}      -1   single_file
-tab       {1.0*tcc:<8.2e}      -1
+tab       -1.0          -1
 ppm       -1.0          -1
 png       -1.0          -1
 log        100

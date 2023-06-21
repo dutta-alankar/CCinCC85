@@ -132,7 +132,7 @@ void Analysis (const Data *d, Grid *grid)
   static double rIni, chi, mach, tcc, factor, Tcl, mu, rho_cl;
   static int first = 0;
   static long int nstep = -1;
-  double temperature_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
+  double temperature_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0}; // temperature cutoff criteria
   double rho_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
 
   double *x  = grid->x[IDIR];
@@ -219,7 +219,9 @@ void Analysis (const Data *d, Grid *grid)
   double dV, rByrInj, rho_wind, T_wind, T_gas;
   int cold_indx;
   int cloud_indx;
-  rho_wind = 1.0;
+  rho_wind = 1.0*pow(g_dist_lab/g_inputParam[RINI], -2);
+  T_wind = MIN(MAX(chi*Tcl*pow(g_dist_lab/g_inputParam[RINI], -2*(g_gamma-1)), Tcutoff), Tmax);
+
   DOM_LOOP(k,j,i){
     dV = grid->dV[k][j][i]; // Cell volume
     trc         += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
@@ -230,7 +232,6 @@ void Analysis (const Data *d, Grid *grid)
     if(d->Vc[RHO][k][j][i] >= (rho_cl/factor))
       mass_dense += d->Vc[RHO][k][j][i]*dV;
     // double temp_cut = 1.2e5;
-    T_wind = MIN(MAX(chi*Tcl, Tcutoff), Tmax);
 
     T_gas = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++){

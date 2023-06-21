@@ -102,8 +102,8 @@ UNIT_VELOCITY = velTini* ((Mdot*(MSun/yr))**-0.5) * (Edot**0.5)
 definitions = \
 f'''
 #define  PHYSICS                        HD
-#define  DIMENSIONS                     1
-#define  COMPONENTS                     1
+#define  DIMENSIONS                     3
+#define  COMPONENTS                     3
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
 #define  FORCED_TURB                    NO

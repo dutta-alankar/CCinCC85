@@ -159,3 +159,25 @@ plt.legend(loc="best")
 plt.xlabel(r"$r/R_{cl}$")
 plt.ylabel(r"Temperature $(\times 10^6\ K)$")
 plt.savefig("compare-setups.png")
+
+temperature_dummy_cloud = (prsnorm(radius_by_Rinj)/rhonorm(radius_by_Rinj))*(mu*mp/kB)*(Edot/(Mdot*MSun/yr))
+temperaure_scaling = (prsnorm(RinibyRinj)/rhonorm(RinibyRinj))*(mu*mp/kB)*(Edot/(Mdot*MSun/yr)) * ((radius_by_Rinj/RinibyRinj)**(-2*(gamma-1)))
+
+ndens_dummy_cloud = rhonorm(radius_by_Rinj)* ((Mdot*(MSun/yr))**1.5) * (Edot**-0.5) * ((Rinj*pc)**-2) / (mu*mp)
+ndens_scaling =  rhoTini* ((Mdot*(MSun/yr))**1.5) * (Edot**-0.5) * ((Rinj*pc)**-2) * ((radius_by_Rinj/RinibyRinj)**-2) / (mu*mp)
+
+tcool_dummy_cloud = (1./(gamma-1))*kB*temperature_dummy_cloud/(ndens_dummy_cloud*LAMBDA(temperature_dummy_cloud))
+tcool_scaling = (1./(gamma-1))*kB*temperaure_scaling/(ndens_scaling*LAMBDA(temperaure_scaling))
+
+tadv_dummy_cloud = radius_by_Rcl*Rcl*pc/(velnorm(radius_by_Rinj)* ((Mdot*(MSun/yr))**-0.5) * (Edot**0.5))
+tadv_scaling = radius_by_Rcl*Rcl*pc/(velTini* ((Mdot*(MSun/yr))**-0.5) * (Edot**0.5))
+
+plt.figure(figsize=(13,10))
+plt.plot(radius_by_Rcl, tcool_scaling/tadv_scaling, label="scaling setup")
+plt.plot(radius_by_Rcl, tcool_dummy_cloud/tadv_dummy_cloud, label="spherical setup")
+
+plt.xlim(xmin=RinibyRcl-15)
+plt.legend(loc="best")
+plt.xlabel(r"$r/R_{cl}$")
+plt.ylabel(r"$t_{cool}/t_{adv}$")
+plt.savefig("compare-tcoolBytadv.png")

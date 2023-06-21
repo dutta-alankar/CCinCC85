@@ -15,8 +15,9 @@ void ComputeUserVar (const Data *d, Grid *grid)
 {
   int i,j,k;
   double ***temperature  = GetUserVar("temperature");
-  double ***ndens = GetUserVar("ndens");
-  double ***mach  = GetUserVar("mach");
+  double ***ndens  = GetUserVar("ndens");
+  double ***mach   = GetUserVar("mach");
+  double ***celldV = GetUserVar("cellvol");
 
   #if COOLING==NO || COOLING==TABULATED || COOLING==TOWNSEND
   double dummy[4];
@@ -31,6 +32,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
       mach[k][j][i]  = sqrt( DIM_EXPAND(d->Vc[VX1][k][j][i]*d->Vc[VX1][k][j][i],
                                         + d->Vc[VX2][k][j][i]*d->Vc[VX2][k][j][i],
                                         + d->Vc[VX3][k][j][i]*d->Vc[VX3][k][j][i]) )/sqrt(g_gamma*(d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i]));
+      celldV[k][j][i] = grid->dV[k][j][i];
   } /* DOM_LOOP(k,j,i) */
 }
 /* ************************************************************* */
