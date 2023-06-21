@@ -136,6 +136,12 @@ void Analysis (const Data *d, Grid *grid)
   double rho_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
 
   double *x  = grid->x[IDIR];
+  double *y  = grid->x[JDIR];
+  double *z  = grid->x[KDIR];
+
+  double *xl = grid->xl[IDIR];
+  double *xr = grid->xr[IDIR];
+
   double tanl;
 
   if (first==0) {
@@ -219,6 +225,11 @@ void Analysis (const Data *d, Grid *grid)
   double dV, rByrInj, rho_wind, T_wind, T_gas;
   int cold_indx;
   int cloud_indx;
+
+  int spread_indx = (int)(sizeof(rho_cut) / sizeof(rho_cut[0])) - 1;
+  double cloud_min = 2*grid->xend_glob[IDIR], cloud_max = 0.5*grid->xbeg_glob[IDIR];
+  double cloud_spread;
+
   rho_wind = 1.0*pow(g_dist_lab/g_inputParam[RINI], -2);
   T_wind = MIN(MAX(chi*Tcl*pow(g_dist_lab/g_inputParam[RINI], -2*(g_gamma-1)), Tcutoff), Tmax);
 
@@ -234,23 +245,32 @@ void Analysis (const Data *d, Grid *grid)
     // double temp_cut = 1.2e5;
 
     T_gas = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
-    for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++){
-        if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx])){
-          if( T_gas <= (factor*Tcl) )
+    for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+        if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx])) {
+          if( T_gas <= (factor*Tcl) ) {
             mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
+            if (cloud_indx == spread_indx) {
+              if (xl[i] < cloud_min) cloud_min = xl[i];
+              if (xr[i] > cloud_max) cloud_max = xr[i];
+            }
+          }
         }
     }
-    if( T_gas <= (factor*Tcl) ){ // temp_cut){
+    if( T_gas <= (factor*Tcl) ){
       for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++){
           if( T_gas <= (T_wind/temperature_cut[cold_indx]) )
             mass_cold[cold_indx] += d->Vc[RHO][k][j][i]*dV;
       }
-      /* if (d->Vc[RHO][k][j][i]>(rho_cl/sqrt(chi))) mass_cold += d->Vc[RHO][k][j][i]*dV; */
-      /* if (d->Vc[RHO][k][j][i] >= (rho_cl/factor)) mass_cold += d->Vc[RHO][k][j][i]*dV; */
     }
   }
 
   #ifdef PARALLEL
+  double pos_value;
+  MPI_Allreduce (&cloud_min, &pos_value, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+  cloud_min = pos_value;
+  MPI_Allreduce (&cloud_max, &pos_value, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  cloud_max = pos_value;
+
   int transfer_size = 5 + (int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])) + (int)(sizeof(rho_cut) / sizeof(rho_cut[0]));
   int transfer = 0;
   double sendArray[transfer_size], recvArray[transfer_size];
@@ -287,6 +307,8 @@ void Analysis (const Data *d, Grid *grid)
   vy_cloud_all    = vy_cloud;
   vz_cloud_all    = vz_cloud;
   #endif
+  cloud_spread = fabs(cloud_max-cloud_min);
+
   vx_cloud_all = vx_cloud_all/trc_all;
   vy_cloud_all = vy_cloud_all/trc_all;
   vz_cloud_all = vz_cloud_all/trc_all;
@@ -345,6 +367,7 @@ void Analysis (const Data *d, Grid *grid)
       #if WIND_TEST != NO
       fprintf (fp, "(%d)rho (code)\n", ++cont);
       #else
+      fprintf (fp, "(%d)cloud spread (code)\n", ++cont);
       fprintf (fp, "\n");
       #endif
       fclose(fp);
@@ -362,12 +385,12 @@ void Analysis (const Data *d, Grid *grid)
     #if WIND_TEST != NO
     double tmp;
     DOM_LOOP(k, j, i) tmp = d->Vc[RHO][k][j][i];
-    fprintf (fp, "%12.6e\t\t%12.6e\n", g_dt, tmp);
-    fclose(fp);
+    fprintf (fp, "%12.6e\t\t%12.6e\t\t", g_dt, tmp);
     #else
-    fprintf (fp, "%12.6e\t\t\n", g_dt);
-    fclose(fp);
+    fprintf (fp, "%12.6e\t\t", g_dt);
     #endif
+    fprintf (fp, "%12.6e\t\t\n", cloud_spread);
+    fclose(fp);
 
     /* Write restart file */
     //printLog("Step %d: Writing Analysis restart!\n", g_stepNumber);
