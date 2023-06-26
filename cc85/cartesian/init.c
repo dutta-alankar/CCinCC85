@@ -166,7 +166,7 @@ void InitDomain (Data *d, Grid *grid)
   double xIni = rIni*sin(thIni)*cos(phiIni);
   double yIni = rIni*sin(thIni)*sin(phiIni);
   double zIni = rIni*cos(thIni);
-  
+
   TOT_LOOP(k,j,i){
     double distance = sqrt(x[i]*x[i] + y[j]*y[j] + z[k]*z[k]);
     double tan_th   = sqrt(x[i]*x[i] + y[j]*y[j])/z[k];
@@ -225,7 +225,7 @@ void Analysis (const Data *d, Grid *grid)
 
   double *xl = grid->xl[IDIR];
   double *xr = grid->xr[IDIR];
-  
+
   double tanl;
 
   if (first==0) {
@@ -317,11 +317,11 @@ void Analysis (const Data *d, Grid *grid)
   double dV, distance, rByrInj, rho_wind, prs_wind, T_wind, T_gas;
   int cold_indx;
   int cloud_indx;
-  
+
   int spread_indx = (int)(sizeof(rho_cut) / sizeof(rho_cut[0])) - 1;
   double cloud_min = 2*grid->xend_glob[IDIR], cloud_max = 0.5*grid->xbeg_glob[IDIR];
   double cloud_spread;
-  
+
   DOM_LOOP(k,j,i){
     dV = grid->dV[k][j][i]; // Cell volume
     trc         += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
@@ -366,7 +366,7 @@ void Analysis (const Data *d, Grid *grid)
   cloud_min = pos_value;
   MPI_Allreduce (&cloud_max, &pos_value, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
   cloud_max = pos_value;
-  
+
   int transfer_size = 5 + (int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])) + (int)(sizeof(rho_cut) / sizeof(rho_cut[0]));
   int transfer = 0;
   double sendArray[transfer_size], recvArray[transfer_size];
@@ -409,7 +409,7 @@ void Analysis (const Data *d, Grid *grid)
   trc_all     = trc_all/trc0_all; // trc0_all is M_cloud, ini
   mass_dense_all = mass_dense_all/trc0_all;
   cloud_spread = fabs(cloud_max-cloud_min);
-  
+
   for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
     mass_cold_all[cold_indx] = mass_cold_all[cold_indx]/trc0_all;
   }
@@ -570,10 +570,10 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       double tan_ph   = y[j]/x_val;
       double cos_ph   = x_val/sqrt(x_val*x_val + y[j]*y[j]);
       double sin_ph   = y[j]/sqrt(x_val*x_val + y[j]*y[j]);
-    
+
       double rByrInj  = (distance/rIni)*rIniByrInj;
-      
-      double vr             = CC85vel(rByrInj)/CC85vel(rIniByrInj);         
+
+      double vr             = CC85vel(rByrInj)/CC85vel(rIniByrInj);
       d->Vc[RHO][k][j][i]   = CC85rho(rByrInj)/CC85rho(rIniByrInj);
       d->Vc[PRS][k][j][i]   = CC85prs(rByrInj)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
       d->Vc[VX1][k][j][i]   = vr*x_val/distance - g_boost_vel; // vr*sin_th*cos_ph - g_boost_vel;
@@ -596,13 +596,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 
     TOT_LOOP(k,j,i){ // -- Loop over all cells --
       int convert_to_cons = 0;
-      
+
       double x_val = x[i] + (g_dist_lab-g_dist_start_boost);
       double distance = sqrt(x_val*x_val + y[j]*y[j] + z[k]*z[k]);
       if (distance <= (g_domBeg[IDIR]+2.0)) {
         double rByrInj  = (distance/rIni)*rIniByrInj;
-      
-        double vr             = CC85vel(rByrInj)/CC85vel(rIniByrInj);         
+
+        double vr             = CC85vel(rByrInj)/CC85vel(rIniByrInj);
         d->Vc[RHO][k][j][i]   = CC85rho(rByrInj)/CC85rho(rIniByrInj);
         d->Vc[PRS][k][j][i]   = CC85prs(rByrInj)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
         d->Vc[VX1][k][j][i]   = vr*x_val/distance - g_boost_vel; // vr*sin_th*cos_ph ;

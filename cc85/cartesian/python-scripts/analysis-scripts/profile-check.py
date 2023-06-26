@@ -151,4 +151,3 @@ plt.savefig("velocity.png")
 plt.close()
 
 data.close()
-

@@ -39,7 +39,7 @@ void ApplyFrameBoost (const Data *d, Grid *grid, double dt) {
   double chi = g_inputParam[CHI];
   double tcc = sqrt(chi);
   if (g_time >= start*tcc) {
-    boost_on = 1;   
+    boost_on = 1;
     TOT_LOOP(k,j,i) {
       d->Vc[VX1][k][j][i] -= vx_cloud;
       /* Update the conservative variables */
@@ -49,7 +49,7 @@ void ApplyFrameBoost (const Data *d, Grid *grid, double dt) {
     }
   }
   #endif
-   
+
   int status = calc_cloud_pos(vx_cloud, dt, start, 0);
   if (boost_on == 0)
     g_dist_start_boost = g_dist_lab;
@@ -61,10 +61,10 @@ int calc_cloud_pos(double velocity, double dt, double start, int save) {
   static double cloud_vel = -1.0;
   static int once = 0;
   static int first_time_boost = 1;
-  
+
   double chi = g_inputParam[CHI];
   double tcc = sqrt(chi);
-  
+
   if (g_stepNumber==0) {
     once = 1;
     cloud_pos = g_inputParam[RINI];
@@ -73,7 +73,7 @@ int calc_cloud_pos(double velocity, double dt, double start, int save) {
     if (save == 0)
       return 0;
   }
-  if (save == 0 && g_stepNumber>0){ 
+  if (save == 0 && g_stepNumber>0){
      #if TRACKING != NO
      if (g_time >= start*tcc) {
        if (first_time_boost == 1) {
@@ -121,7 +121,7 @@ int calc_cloud_pos(double velocity, double dt, double start, int save) {
     fclose(fp);
     g_dist_lab = cloud_pos;
     once = 1;
-    if (g_time >= start*tcc) 
+    if (g_time >= start*tcc)
       first_time_boost = 0;
     return 0;
   }

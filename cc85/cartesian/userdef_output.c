@@ -67,7 +67,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
       ndens[k][j][i] = d->Vc[RHO][k][j][i]*UNIT_DENSITY/(CONST_mp*mu);
       mach[k][j][i]  = sqrt( DIM_EXPAND(d->Vc[VX1][k][j][i]*d->Vc[VX1][k][j][i], + d->Vc[VX2][k][j][i]*d->Vc[VX2][k][j][i], + d->Vc[VX3][k][j][i]*d->Vc[VX3][k][j][i]) )/sqrt(g_gamma*(d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i]));
       celldV[k][j][i] = grid->dV[k][j][i];
-      
+
       double x_val = x[i] + (g_dist_lab-g_dist_start_boost);
       distance = sqrt(x_val*x_val + y[j]*y[j] + z[k]*z[k]);
       rByrInj  = (distance/rIni)*rIniByrInj;
