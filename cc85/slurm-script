@@ -4,7 +4,7 @@
 #SBATCH --mail-type=NONE         # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=alankardutta@iisc.ac.in    # Where to send mail.  Set this to your email address
 #SBATCH -p debug
-#SBATCH -t 2-06:00:00
+#SBATCH -t 4-06:00:00
 #SBATCH -n 200
 #SBATCH --output=%x-%j.log
 

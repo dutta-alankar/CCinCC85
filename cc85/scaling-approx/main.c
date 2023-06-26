@@ -261,19 +261,6 @@ int main (int argc, char *argv[])
 
     }
 
-    #if TRACKING != NO
-    double vx_cloud = ApplyFrameBoost (&data, grd);
-    #endif
-
-    #if SCALING != NO
-    #if TRACKING != NO
-    double scale = calc_scale(vx_cloud, g_dt);
-    #else
-    double scale = calc_scale(-1.0, g_dt);
-    #endif
-    ApplyWindScaling(&data, g_dt, grd, scale);
-    #endif
-
   /* ----------------------------------------------------
      1g. Increment time, t(n+1) = t(n) + dt(n)
      ---------------------------------------------------- */

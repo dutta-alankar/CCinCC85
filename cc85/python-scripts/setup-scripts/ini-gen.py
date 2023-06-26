@@ -10,7 +10,7 @@ constants_add_misc = importlib.import_module("def-gen")
 globals().update(vars(constants_add_misc)) #imported variables
 
 Rclbydcell  = 16 #resolution
-Npar   = 300
+Npar   = 450
 Nprp   = 10
 Nleft  = 5
 

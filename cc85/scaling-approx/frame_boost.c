@@ -1,10 +1,10 @@
 /* ///////////////////////////////////////////////////////////////////// */
 /*!
  *   \file
- *     \brief cloud tracking by shifting cells using tracer weighted position
+ *     \brief cloud tracking by frame boost
  *
  *       \author Alankar Dutta
- *       \date   Mar 10, 2022
+ *       \date   Jun 8, 2023
  *
  * ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"

@@ -13,6 +13,10 @@ endif
 
  OBJ          += tracking.o
  OBJ          += wind.o
+ 
+ HEADERS      += wind.h
+ HEADERS      += local_pluto.h
+ HEADERS      += local_gvars.h
 
  # CFLAGS      += -DUSE_PNG
  # LDFLAGS     += -L$(PNG_LIB)/lib -lpng
