@@ -254,6 +254,8 @@ cc85/wind-cooling/scaling-approx/makefile
 cc85/wind-cooling/scaling-approx/definitions.h
 cc85/wind-cooling/scaling-approx/pluto.ini
 cc85/wind-cooling/scaling-approx/output
+cc85/cartesian/makefile
+cc85/cartesian/definitions.h
 
 vanilla/makefile
 vanilla/definitions.h

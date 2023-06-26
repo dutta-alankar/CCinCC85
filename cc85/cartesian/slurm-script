@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+#SBATCH --job-name="cc85-car"
+#SBATCH --mail-type=NONE         # Mail events (NONE, BEGIN, END, FAIL, ALL)
+#SBATCH --mail-user=alankardutta@iisc.ac.in    # Where to send mail.  Set this to your email address
+#SBATCH -p debug
+#SBATCH -t 4-06:00:00
+#SBATCH -n 200
+#SBATCH --output=%x-%j.log
+
+echo "Working Directory = $(pwd)"
+
+cd $SLURM_SUBMIT_DIR
+export PROG="./pluto" # -catalyst 1 AllFieldsCatalyst.py"
+mkdir -p $SLURM_SUBMIT_DIR/output/Log_Files
+
+# module load catalyst/v2
+module load hdf5/parallel
+
+# export VTK_SILENCE_GET_VOID_POINTER_WARNINGS=1
+
+srun $PROG
