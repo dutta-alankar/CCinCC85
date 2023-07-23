@@ -55,18 +55,16 @@ velnorm = interp1d(rnorm, wind[:,3])
 
 LAMBDA = np.loadtxt('../../cooltable.dat')
 LAMBDA = interp1d(LAMBDA[:,0], LAMBDA[:,1], fill_value='extrapolate')
-
 '''
 # Max's parameters
 chi = 100
 Mw = 1.5
 tcoolmBytcc = 0.08
-Tcl = 4e4 # K
 RinibyRcl = 200
+Tcl = 4e4 #K
 
-PinibykB = 1.0e+06 # Kcm^-3, degenerate
+PinibykB = 1.0e+06 #Kcm^-3, degenerate
 '''
-
 # New parameters
 chi = 100
 Mw = 1.8
@@ -99,6 +97,7 @@ Edot = ((Pw/prsTini) * (vw/velTini) *(Rinj*pc)**2) #erg s^-1
 
 sanity = (rhow/rhoTini)/((Pw/prsTini)*(vw/velTini)**-2)
 
+print('M_ini = %.1f'%Mw)
 print('Mdot = %.2e MSun/yr'%Mdot)
 print('Edot = %.2e erg/s'%Edot)
 print('R_inj = %.2e pc'%(Rinj*pc/pc))
@@ -106,6 +105,8 @@ print('R_ini = %.2e pc'%(Rini*pc/pc))
 print('R_cl = %.2e pc'%(Rcl*pc/pc))
 print('R_go = %.2e pc'%Rgo)
 print('T_cl = %.2e K'%Tcl)
+print('R_ini/R_inj = %.2e'%(Rini/Rinj))
+print('R_inj/R_cl = %.2e'%(Rinj/Rcl))
 
 if (Rini-Rcl)<Rinj:
     print("Problem!")
@@ -145,6 +146,7 @@ f'''
 #define  TRACKING                       YES
 #define  SCALING                        YES
 #define  WIND_TEST                      NO
+#define  CONST_WIND_VEL                 NO
 
 /* -- user-defined parameters (labels) -- */
 
@@ -163,7 +165,7 @@ f'''
 #define  MULTIPLE_LOG_FILES             YES
 #define  VERBOSE                        NO
 #define  CUTOFF                         NO
-#define  BOOST_START                    22.0
+#define  BOOST_START                    20.0
 '''
 
 definitions = definitions[1:]

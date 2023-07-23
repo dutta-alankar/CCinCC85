@@ -1,28 +1,9 @@
 #include "pluto.h"
 #include "local_pluto.h"
 #include "wind.h"
-#include <execinfo.h>
 
 double *rbyR, *rhotld, *prstld, *veltld, *machCC85;
 int nwindtab;
-
-void create_CC85_data(){
-  static int create_data = 1;
-  /* create the CC85 steady profile for the given set of parameters in python */
-  if (prank==0 && create_data){
-    char command[500];
-    int len = sprintf(command,"%s ./CC85.py %e %e %e %e %e %e %s", PYTHON_LOC,
-                 1.0, 1.6e43,
-                 1.0,  7.0,
-                 200.0,  g_gamma, "False");
-    printLog("> Executing: %s\n",command);
-    int dummy = system(command);
-    create_data = 0;
-  }
-  #ifdef PARALLEL
-  MPI_Barrier (MPI_COMM_WORLD);
-  #endif
-}
 
 void read_CC85_data(char *filename){
   /* -------------------------------------------
@@ -83,13 +64,6 @@ double interp1D_wind(double* x_data, double* y_data, double x_request, char* msg
   if (x_request > x_data[khi] || x_request < x_data[klo]){
     print ("Called from %s\n",msg);
     print (" ! Requested value out of range: %12.6e\n",x_request);
-    void* callstack[128];
-    int i, frames = backtrace(callstack, 128);
-    char** strs = backtrace_symbols(callstack, frames);
-    for (i = 0; i < frames; ++i) {
-      print("%s\n", strs[i]);
-    }
-    free(strs);
     QUIT_PLUTO(1);
   }
 

@@ -33,7 +33,6 @@
 #include "local_pluto.h"
 #include "globals.h"
 #include "local_gvars.h"
-#include "wind.h"
 #ifdef USE_CATALYST
 #include "CatalystAdaptor.h"
 #endif
@@ -50,7 +49,6 @@ static char *TotalExecutionTime (double);
 static int Integrate (Data *, timeStep *, Grid *);
 static void CheckForOutput (Data *, Runtime *, time_t, Grid *);
 static void CheckForAnalysis (Data *, Runtime *, Grid *);
-static void MoveTrack (const Data *, Grid *, Runtime *, cmdLine *);
 
 /* ********************************************************************* */
 int main (int argc, char *argv[])
@@ -167,7 +165,7 @@ int main (int argc, char *argv[])
   }
 
   if (cmd_line.maxsteps == 0) last_step = 1;
-
+  g_minCoolingTemp = 1.e4;
   print ("> Starting computation... \n\n");
 
 /* =====================================================================
@@ -263,7 +261,6 @@ int main (int argc, char *argv[])
 
     }
 
-
   /* ----------------------------------------------------
      1g. Increment time, t(n+1) = t(n) + dt(n)
      ---------------------------------------------------- */
@@ -293,12 +290,6 @@ int main (int argc, char *argv[])
     //#else
     //if (g_stepNumber%2 == 1) g_dt = NextTimeStep(&Dts, &runtime, grd);
     //#endif
-
-    /* ----------------------------------------------------
-     1i. Move cloud and update grid if necessary
-     ---------------------------------------------------- */
-
-    MoveTrack(&data, grd, &runtime, &cmd_line);
 
     g_stepNumber++;
     first_step = 0;
@@ -717,7 +708,10 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
   /* -- if any of the previous is true dump data to disk -- */
 
     if (check_dt || check_dn || check_dclock) {
-
+      #if TRACKING !=NO || SCALING != NO
+      int dummy_status;
+      if (prank==0) dummy_status = store_or_save_cloud_pos(-1.0, -1.0, 1);
+      #endif
       #if PARTICLES
       if (  output->type == PARTICLES_DBL_OUTPUT
          || output->type == PARTICLES_FLT_OUTPUT
@@ -728,76 +722,6 @@ void CheckForOutput (Data *d, Runtime *runtime, time_t t0, Grid *grid)
       } else
       #endif
       WriteData(d, output, grid);
-
-      #if TRACKING !=NO
-      #ifdef USE_HDF5
-      if (output->type == DBL_H5_OUTPUT || output->type == FLT_H5_OUTPUT) {
-        int nfile = output->nfile;
-        /* ----------------------------------------------
-           3. Write grid.%.4d.out file and restart-data.dat
-           ---------------------------------------------- */
-
-        if (prank == 0){
-          int i;
-          char fname[512];
-          time_t time_now;
-          time(&time_now);
-          FILE *fg;
-
-          sprintf (fname,"%s/grid.%04d.out", runtime->output_dir, nfile);
-          fg = fopen(fname,"w");
-          fprintf (fg, "# ******************************************************\n");
-          #ifdef CHOMBO
-          fprintf (fg, "# PLUTO-Chombo %s (Base) Grid File\n",PLUTO_VERSION);
-          #else
-          fprintf (fg, "# PLUTO %s Grid File\n",PLUTO_VERSION);
-          #endif
-
-          fprintf (fg, "# Generated on  %s",asctime(localtime(&time_now)));
-
-          /*    fprintf (fg, "# %s\n", getenv("PWD")); */
-
-          fprintf (fg, "# \n");
-          fprintf (fg,"# DIMENSIONS: %d\n",DIMENSIONS);
-          #if GEOMETRY == CARTESIAN
-          fprintf (fg, "# GEOMETRY:   CARTESIAN\n");
-          #elif GEOMETRY == CYLINDRICAL
-          fprintf (fg, "# GEOMETRY:   CYLINDRICAL\n");
-          #elif GEOMETRY == POLAR
-          fprintf (fg, "# GEOMETRY:   POLAR\n");
-          #elif GEOMETRY == SPHERICAL
-          fprintf (fg, "# GEOMETRY:   SPHERICAL\n");
-          #endif
-          int idim, ibeg, iend, ngh;
-          DIM_LOOP(idim){
-            fprintf (fg, "# X%d: [% f, % f], %d point(s), %d ghosts\n", idim+1,
-                     g_domBeg[idim], g_domEnd[idim],
-                     grid->np_int_glob[idim], grid->nghost[idim]);
-          }
-          fprintf (fg, "# ******************************************************\n");
-          for (idim = 0; idim < 3; idim++) {
-            ngh  = grid->nghost[idim];
-            ibeg = grid->gbeg[idim];
-            iend = grid->gend[idim];
-            fprintf (fg, "%d \n", iend - ibeg + 1);
-            for (i = ibeg; i <= iend; i++) {
-              fprintf (fg, " %d   %18.12e    %18.12e\n",
-                       i-ngh+1, grid->xl_glob[idim][i], grid->xr_glob[idim][i]);
-            }
-          }
-          fclose(fg);
-
-         sprintf (fname,"%s/restart-data.%04d.out", runtime->output_dir, nfile);
-         FILE* fr = fopen(fname,"w");
-         fprintf(fr, "%lf\n",g_tot_shift_val);
-         fprintf(fr, "%lf\n",g_tracking);
-         fclose(fr);
-        }
-      }
-      #else
-      printLog ("! CheckForOutput: HDF5 library not available\n");
-      #endif
-      #endif
 
     /* ----------------------------------------------------------
         save the file number of the dbl and dbl.h5 output format
@@ -844,82 +768,4 @@ void CheckForAnalysis (Data *d, Runtime *runtime, Grid *grid)
   check_dn = check_dn && (runtime->anl_dn > 0);
 
   if (check_dt || check_dn) Analysis (d, grid);
-}
-
-/* ********************************************************************* */
-void MoveTrack (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_line){
-/*
- *
- * PURPOSE
- *
- *   Calculate how much a marked region has moved
- *
- ********************************************************************** */
-  int k, j, i, nv;
-
-  double *r  = grid->x[IDIR];
-  double *xl = grid->xl[IDIR];
-  double *xr = grid->xr[IDIR];
-
-  double xc    = 0., xc_all  = 0.;
-  double mass_trc   = 0., mass_trc_all = 0.;
-  double trc_min = 2.0*grid->xend_glob[IDIR];
-  double trc_max = 0.5*grid->xbeg_glob[IDIR];
-    
-  double chi         = g_inputParam[CHI];
-  double mach        = g_inputParam[MACH];
-  double rIniByrInj  = CC85pos(mach);
-
-  double oth_mu[4];
-  double mu      = MeanMolecularWeight((double*)d->Vc, oth_mu);
-  double Tcl     = (CC85prs(rIniByrInj)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2)))*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/(CONST_kB*chi); // in K
-  double factor  = sqrt(chi)/3;
-
-  double dV;
-  DOM_LOOP(k,j,i) {
-    dV = grid->dV[k][j][i]; // Cell volume
-    xc  += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*r[i]*dV;
-    mass_trc += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV; // tracer weighted
-    if (d->Vc[TRC][k][j][i] >= 1.0e-04) {
-      if (xl[i] < trc_min) trc_min = xl[i];
-      if (xr[i] > trc_max) trc_max = xr[i];
-    }
-  } /* DOM_LOOP(k,j,i) */
-  #ifdef PARALLEL
-  int transfer_size = 2;
-  int transfer = 0;
-  double sendArray [transfer_size], recvArray[transfer_size];
-  sendArray[transfer++]=xc; sendArray[transfer++]=mass_trc;
-  MPI_Allreduce (sendArray, recvArray, transfer_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Barrier (MPI_COMM_WORLD);
-  transfer = 0;
-  xc_all=recvArray[transfer++]; mass_trc_all=recvArray[transfer++];
-  double pos_value;
-  MPI_Allreduce (&trc_min, &pos_value, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-  MPI_Barrier (MPI_COMM_WORLD);
-  trc_min = pos_value;
-  MPI_Allreduce (&trc_max, &pos_value, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-  MPI_Barrier (MPI_COMM_WORLD);
-  trc_max = pos_value;
-  #else
-  xc_all    = xc;
-  mass_trc_all   = mass_trc;
-  #endif
-  xc_all /= mass_trc_all;
-
-  g_dist_lab = (g_stepNumber==0)?g_inputParam[RINI]:xc_all;  // wind centric position of the cloud
-  g_trctrack = trc_min;
-  
-  g_trcmin = trc_min;
-  g_trcmax = trc_max;
-
-  #if VERBOSE != NO
-  #if TRACKING == NO
-  printLog("step %d; g_dist_lab = %.2f\n", g_stepNumber, g_dist_lab);
-  #endif
-  #endif
-  #if TRACKING != NO
-  ApplyTracking(d, grid, runtime, cmd_line);
-  MPI_Barrier (MPI_COMM_WORLD);
-  #endif
 }

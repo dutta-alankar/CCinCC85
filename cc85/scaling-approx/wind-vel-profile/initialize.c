@@ -31,7 +31,6 @@
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
-#include "local_pluto.h"
 
 #ifdef PARALLEL
 static int GetDecompMode (cmdLine *cmd_line, int procs[]);
@@ -56,7 +55,7 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
  *********************************************************************** */
 {
   int  nprocs, decomp_mode;
-  int  i, j, k, idim, nv, count;
+  int  i, j, k, idim, nv;
   int  nx, ny, nz, nghost, status;
   int  gsize[3] = {1,1,1};
   int  lsize[3] = {1,1,1};
@@ -188,7 +187,6 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
   AL_Get_gbounds (SZ_Float_Vect, gbeg, gend, ghosts, AL_C_INDEXES);
   AL_Is_boundary (SZ_Float_Vect, is_gbeg, is_gend);
 
-  for (count=0; count<3; count++) g_procs[count] = procs[count];
   SetGrid (runtime, procs, grid);
 
 /* -- Find total number of processors & decomposition mode -- */
@@ -315,8 +313,7 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
    ----------------------------------------------------- */
 
   nghost = GetNghost();
-  
-  for (count=0; count<3; count++) g_procs[count] = procs[count];
+
   SetGrid (runtime, procs, grid);
   nprocs = 1;
 
@@ -519,10 +516,8 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
       We also compute the average orbital velocity
       in case output requires writing the residual.
    ---------------------------------------------- */
-  static int flag = 0;
-  if (flag == 0)
-    Startup (data, grid);
-  flag = 1;
+
+  Startup (data, grid);
 
 #if (PARTICLES != NO)
   if (cmd_line->prestart == NO) Particles_Set(data, grid);

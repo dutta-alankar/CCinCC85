@@ -246,15 +246,15 @@ void Analysis (const Data *d, Grid *grid)
 
     T_gas = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
-        if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx])) {
-          if( T_gas <= (factor*Tcl) ) {
-            mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
-            if (cloud_indx == spread_indx) {
-              if (xl[i] < cloud_min) cloud_min = xl[i];
-              if (xr[i] > cloud_max) cloud_max = xr[i];
-            }
+      if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx])) {
+        if( T_gas <= (factor*Tcl) ) {
+          mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
+          if (cloud_indx == spread_indx) {
+            if (xl[i] < cloud_min) cloud_min = xl[i];
+            if (xr[i] > cloud_max) cloud_max = xr[i];
           }
         }
+      }
     }
     if( T_gas <= (factor*Tcl) ){
       for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++){
@@ -321,6 +321,7 @@ void Analysis (const Data *d, Grid *grid)
     mass_cloud_all[cloud_indx] = mass_cloud_all[cloud_indx]/trc0_all;
   }
 
+  vx_cloud_all += g_boost_vel;
   double v_cloud = sqrt(vx_cloud_all*vx_cloud_all + vy_cloud_all*vy_cloud_all + vz_cloud_all*vz_cloud_all);
 
   /* ---- Write ascii file "analysis.dat" to disk ---- */
@@ -368,7 +369,6 @@ void Analysis (const Data *d, Grid *grid)
       fprintf (fp, "(%d)rho (code)\n", ++cont);
       #else
       fprintf (fp, "(%d)cloud spread (code)\n", ++cont);
-      fprintf (fp, "\n");
       #endif
       fclose(fp);
     }

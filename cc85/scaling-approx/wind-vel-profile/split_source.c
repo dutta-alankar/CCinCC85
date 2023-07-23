@@ -9,8 +9,8 @@
   At present these source terms are one or more of the following:
 
   - optically thin radiative losses (cooling)
-  - Diffusion operators:
-    - resistivity
+  - Diffusion operators: 
+    - resistivity 
     - Thermal conduction
     - Viscosity
   - additional user-defined terms may also be included here.
@@ -24,13 +24,13 @@
 
 /* ********************************************************************* */
 void SplitSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
-/*!
+/*! 
  *  Take one step on operator-split source terms.
  *
- *  \param [in,out] d   pointer to PLUTO Data structure containing
- *                      the solution array updated from the most
+ *  \param [in,out] d   pointer to PLUTO Data structure containing 
+ *                      the solution array updated from the most 
  *                      recent call
- *  \param[in]      dt  the time step used to integrate the source
+ *  \param[in]      dt  the time step used to integrate the source 
  *                      terms
  *  \param[in]     Dts  pointer to the time step structure
  *  \param[in]    grid  pointer to an array of grid structures
@@ -40,8 +40,8 @@ void SplitSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
   double vx_cloud = transform_velocity(d, grid);
 
   #if SCALING != NO
-  double scale = calc_scale(d, grid, vx_cloud, dt);
-  ApplyWindScaling(d, dt, grid, scale);
+  double *all_scales = calc_scale(vx_cloud, dt);
+  ApplyWindScaling(d, grid, all_scales);
   #endif
 
   #if TRACKING != NO
@@ -67,9 +67,9 @@ void SplitSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
 /* ----------------------------------------------
     Parabolic terms using STS:
 
-    - resistivity
+    - resistivity 
     - thermal conduction
-    - viscosity
+    - viscosity 
    ---------------------------------------------- */
 
 #if (PARABOLIC_FLUX & SUPER_TIME_STEPPING)

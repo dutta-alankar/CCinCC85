@@ -234,6 +234,9 @@ cython_debug/
 PLUTO/
 pluto
 
+CC85_steady-prof*
+*.ini
+output-*
 cc85/makefile
 cc85/definitions.h
 cc85/pluto.ini
@@ -248,11 +251,9 @@ cc85/scaling-approx/definitions.h
 cc85/scaling-approx/makefile
 cc85/wind-cooling/dummy-cloud/makefile
 cc85/wind-cooling/dummy-cloud/definitions.h
-cc85/wind-cooling/dummy-cloud/pluto.ini
 cc85/wind-cooling/dummy-cloud/output
 cc85/wind-cooling/scaling-approx/makefile
 cc85/wind-cooling/scaling-approx/definitions.h
-cc85/wind-cooling/scaling-approx/pluto.ini
 cc85/wind-cooling/scaling-approx/output
 cc85/cartesian/makefile
 cc85/cartesian/definitions.h

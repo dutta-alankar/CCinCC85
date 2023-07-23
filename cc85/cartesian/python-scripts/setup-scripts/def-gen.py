@@ -55,7 +55,7 @@ velnorm = interp1d(rnorm, wind[:,3])
 LAMBDA = np.loadtxt('../../cooltable.dat')
 LAMBDA = interp1d(LAMBDA[:,0], LAMBDA[:,1], fill_value='extrapolate')
 
-'''
+
 # Max's parameters
 chi = 100
 Mw = 1.5
@@ -73,7 +73,7 @@ Tcl = 4e4 # K
 RinibyRcl = 40
 
 PinibykB = 2.5e5 # Kcm^-3, degenerate
-
+'''
 
 Tw = chi*Tcl
 Pw = PinibykB*kB
@@ -158,7 +158,7 @@ f'''
 #define  MULTIPLE_LOG_FILES             YES
 #define  VERBOSE                        NO
 #define  CUTOFF                         NO
-#define  BOOST_START                    10.0
+#define  BOOST_START                    21.0
 '''
 
 definitions = definitions[1:]

@@ -14,7 +14,7 @@ double transform_velocity (const Data *d, Grid *grid) {
   int i, j, k;
   double trc=0., vx_cloud=0.;
   double dV;
-  DOM_LOOP(k,j,i){
+  DOM_LOOP(k,j,i) {
     dV = grid->dV[k][j][i]; // Cell volume
     trc         += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
     vx_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX1][k][j][i]*d->Vc[TRC][k][j][i]*dV;
@@ -33,20 +33,24 @@ double transform_velocity (const Data *d, Grid *grid) {
   return vx_cloud;
 }
 
-void ApplyFrameBoost (const Data *d, Grid *grid, double vx_cloud)
-{
+void ApplyFrameBoost (const Data *d, Grid *grid, double vx_cloud) {
   int i, j, k;
   static int once = 0;
-
-  if (once==0) g_boost_vel = vx_cloud;
-  else g_boost_vel += vx_cloud;
-  once = 1;
-
-  TOT_LOOP(k,j,i){
-    d->Vc[VX1][k][j][i]    -= vx_cloud;
-    /* Update the conservative variables */
-    RBox dom_box;
-    RBoxDefine (i, i, j, j, k, k, CENTER, &dom_box);
-    PrimToCons3D(d->Vc, d->Uc, &dom_box);
+  double start = BOOST_START*sqrt(g_inputParam[CHI]);
+  if (once==0) {
+    g_boost_vel = 0.;
+    once = 1;
   }
+  if (g_time>=start) {
+    TOT_LOOP(k,j,i){
+      d->Vc[VX1][k][j][i] -= vx_cloud;
+      /* Update the conservative variables */
+      RBox dom_box;
+      RBoxDefine (i, i, j, j, k, k, CENTER, &dom_box);
+      PrimToCons3D(d->Vc, d->Uc, &dom_box);
+    }
+    g_boost_vel += vx_cloud;
+  }
+  else
+    g_boost_vel = 0.;
 }

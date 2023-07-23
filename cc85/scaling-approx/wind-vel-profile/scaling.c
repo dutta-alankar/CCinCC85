@@ -4,25 +4,26 @@
  *     \brief cloud tracking by shifting cells using tracer weighted position
  *
  *       \author Alankar Dutta
- *       \date   Mar 10, 2022
+ *       \date   Jun 29, 2022
  *
  * ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 #include "local_pluto.h"
 #include "wind.h"
 
-void ApplyWindScaling (const Data *d, double dt, Grid *grid, double scale)
+void ApplyWindScaling (const Data *d, Grid *grid, double *all_scales)
 /*!
  * Integrate cooling and reaction source terms.
  *
  * \param [in,out]  d      pointer to Data structure
- * \param [in]     dt      the time step to be taken
- * \param [out]    Dts     pointer to the Time_Step structure
  * \param [in]     grid    pointer to an array of Grid structures
  * \param [in]     double* scale factors
  *
  *********************************************************************** */
-{  
+{
+  double scale     = all_scales[0];
+  double vx_factor = all_scales[1];
+  
   int i, j, k;
   int iend = grid->lend[IDIR] + grid->nghost[IDIR];
   int jend = grid->lend[JDIR] + grid->nghost[JDIR];
@@ -59,7 +60,14 @@ void ApplyWindScaling (const Data *d, double dt, Grid *grid, double scale)
   }
   SetGeometry(grid);
 
-  TOT_LOOP(k,j,i){    
+  TOT_LOOP(k,j,i){
+    #if CONST_WIND_VEL == NO
+    #if WIND_TEST == NO
+    d->Vc[VX1][k][j][i]   += (vx_factor*(1.-d->Vc[TRC][k][j][i]));
+    #else
+    d->Vc[VX1][k][j][i]   += vx_factor;
+    #endif
+    #endif
     d->Vc[RHO][k][j][i]  *= pow(scale, cc85_exp[0]);
     d->Vc[PRS][k][j][i]  *= pow(scale, cc85_exp[1]);
 
@@ -126,7 +134,7 @@ int store_or_save_cloud_pos(double position, double velocity, int save) {
   return -1; // error
 }
 
-double calc_scale(double vx_cloud, double dt)
+double* calc_scale(double vx_cloud, double dt)
 {
   double start = BOOST_START*sqrt(g_inputParam[CHI]);
   double scale = 0.;
@@ -155,8 +163,7 @@ double calc_scale(double vx_cloud, double dt)
     dummy = fscanf(fp, "%f\n", &cloud_vel);
     dummy = fscanf(fp, "%d\n", &g_first_time_boost);
     #if TRACKING != NO
-    if ( g_time>=start && g_first_time_boost==1) g_boost_vel = cloud_vel;
-    else if ( g_time>=start && g_first_time_boost==0) g_boost_vel += cloud_vel;
+    if ( g_time>=start ) g_boost_vel = cloud_vel;
     else
     #endif
       g_boost_vel = 0.;
@@ -198,5 +205,20 @@ double calc_scale(double vx_cloud, double dt)
   }
   scale = cloud_pos/cloud_pos_old;
 
-  return scale;
+  static double all_scales[2];
+  double rIni        = g_inputParam[RINI]; // Enter cloud position in Rcl
+  double mach        = g_inputParam[MACH];
+  double rIniByrInj  = CC85pos(mach);
+  
+  double rByrInj_now  = (cloud_pos/rIni)*rIniByrInj; 
+  double rByrInj_old  = (cloud_pos_old/rIni)*rIniByrInj; 
+  // printLog("Debug: %.2e %.2e\n", rByrInj_old, rByrInj_now);
+  double vx_factor    = (CC85vel(rByrInj_now)-CC85vel(rByrInj_old));
+  // g_tmp = rByrInj_now-rByrInj_old;
+  //g_tmp = CC85vel(rByrInj_now)-CC85vel(rByrInj_old);
+  
+  all_scales[0] = scale;
+  all_scales[1] = vx_factor;
+
+  return all_scales;
 }

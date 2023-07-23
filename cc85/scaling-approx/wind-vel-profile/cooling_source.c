@@ -77,7 +77,7 @@ void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
    1. Main loop on interior computational zones
    --------------------------------------------------------  */
 
-  DOM_LOOP(k,j,i){ /* -- span the computational domain -- */
+  DOM_LOOP(k,j,i){
     if (d->Vc[TRC][k][j][i] <= 1.0e-04) continue; // XXX: Ignore Wind Cooling
 
   /* ------------------------------------------------------

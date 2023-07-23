@@ -13,11 +13,10 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 #include "local_pluto.h"
+#include "wind.h"
 #include <math.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include "wind.h"
-//#include "info.h"
 //#include "gsl.h"
 
 #define UNIT_MASS (UNIT_DENSITY*pow(UNIT_LENGTH,3))
@@ -72,8 +71,7 @@ void InitDomain (Data *d, Grid *grid)
  *
  *********************************************************************** */
 {
-  FILE *fp;
-  int overwrite;
+  g_gamma = 5/3.;
   double oth_mu[4];
   int yr = 365*24*60*60;
   double mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
@@ -82,17 +80,13 @@ void InitDomain (Data *d, Grid *grid)
   double Tmax    = 1.e8;
   double nmin    = 1e-6;
 
-  // write_info("info.yaml");
-
-  g_gamma          = 5/3.;
-  g_smallDensity   = (nmin*((CONST_mp*mu)/UNIT_DENSITY));
-  g_smallPressure  = (nmin*Tcutoff*CONST_kB)/(UNIT_DENSITY*pow(UNIT_VELOCITY,2));
-  g_minCoolingTemp = 1.e4;
-
+  g_smallDensity  = (nmin*((CONST_mp*mu)/UNIT_DENSITY));
+  g_smallPressure = (nmin*Tcutoff*CONST_kB)/(UNIT_DENSITY*pow(UNIT_VELOCITY,2));
+  
   /* Write the data files needed for the simulation if it is non-existent, corrupted or empty */
-
+  FILE *fp;
   /* create the CC85 steady profile for the given set of parameters in python */
-  overwrite = 0;
+  int overwrite = 0;
   char CC85DataFile[256];
   sprintf(CC85DataFile, "./CC85_steady-prof_gamma_%.3f.txt", g_gamma);
   if(!access(CC85DataFile, F_OK ) && !access(CC85DataFile, R_OK )){
@@ -104,92 +98,62 @@ void InitDomain (Data *d, Grid *grid)
   if(!access(CC85DataFile, F_OK ) && !access(CC85DataFile, R_OK ) && !overwrite)
     read_CC85_data(CC85DataFile);
   else{
-    printLog("> Creating CC85 data:\n");
-    if (prank==0) create_CC85_data();
-    #ifdef PARALLEL
-    MPI_Barrier (MPI_COMM_WORLD);
-    #endif
-    read_CC85_data(CC85DataFile);
+    print("CC85 wind data absent!\n");
+    QUIT_PLUTO(1);
   }
-
+  
+  #if COOLING != NO
   /* create cooling table if not found using Cloudy */
-  overwrite = 0;
   char CoolingDataFile[256];
   sprintf(CoolingDataFile, "./cooltable.dat");
   if(!access(CoolingDataFile, F_OK ) && !access(CoolingDataFile, R_OK )){
     fp = fopen(CoolingDataFile, "r");
     fseek (fp, 0, SEEK_END);
     int contentSize = ftell(fp);
-    overwrite = (contentSize==0)?1:0;
   }
-  if(access(CoolingDataFile, F_OK ) || access(CoolingDataFile, R_OK ) || overwrite){
-    if (prank==0){
-      int len, dummy;
-      char command[500];
-      #ifdef PARALLEL
-      len = sprintf(command,"cd %s && %s %.3f %.3e %s",
-                    "./cloudy-cooling" ,"./hazy_coolingcurve",
-                    g_inputParam[ZMET],1e-3,"False");
-      #else
-      len = sprintf(command,"cd %s && %s %.3f %.3e %s",
-                    "./cloudy-cooling" ,"./hazy_coolingcurve",
-                    g_inputParam[ZMET],1e-3,"True");
-      #endif
-      printLog("> Executing: %s\n",command);
-      dummy = system(command);
-      len = sprintf(command,"cp %s/%s %s",
-                    "./cloudy-cooling","hazy_coolingcurve.txt",
-                    "./cooltable.dat");
-      dummy = system(command);
-    }
+  if(access(CoolingDataFile, F_OK ) || access(CoolingDataFile, R_OK )){
+    print("cooling data absent!\n");
+    QUIT_PLUTO(1);
   }
+  #endif
 
   #ifdef PARALLEL
   MPI_Barrier (MPI_COMM_WORLD);
   #endif
 
-  /* Initialization starts here */
-
-  double rIni        = g_inputParam[RINI]; // cloud position in units of Rcl
-  double thIni       = g_inputParam[THINI]*CONST_PI/180;
-  double phiIni      = g_inputParam[PHIINI]*CONST_PI/180;
+  double rIni        = g_inputParam[RINI]; // Enter cloud position in Rcl
   double chi         = g_inputParam[CHI];
   double mach        = g_inputParam[MACH];
-  double rIniByrInj  = CC85pos(mach);
+  
+  double rIniByrInj  = CC85pos(mach); // Position wrt wind
 
-  printLog("> RiniByRinj = %.5e\n", rIniByrInj);
-  g_dist_lab  = rIni; //Seed cloud position in units of Rcl wrt wind center
+  g_dist_lab   = rIni; // Seed cloud position in pc wrt wind center
+  g_dist_start_boost = g_dist_lab;
 
   int i, j, k;
-  double *r   = grid->x[IDIR];
-  double *th  = grid->x[JDIR];
-  double *phi = grid->x[KDIR];
+  double *x = grid->x[IDIR];
+  double *y = grid->x[JDIR];
+  double *z = grid->x[KDIR];
 
-  double xIni = rIni*sin(thIni)*cos(phiIni);
-  double yIni = rIni*sin(thIni)*sin(phiIni);
-  double zIni = rIni*cos(thIni);
+  double xIni = rIni;
+  double yIni = 0.;
+  double zIni = 0.;
   TOT_LOOP(k,j,i){
-    double x = r[i]*sin(th[j])*cos(phi[k]);
-    double y = r[i]*sin(th[j])*sin(phi[k]);
-    double z = r[i]*cos(th[j]);
+    double R = sqrt( (x[i]-xIni)*(x[i]-xIni) + (y[j]-yIni)*(y[j]-yIni) + (z[k]-zIni)*(z[k]-zIni) );
+    double rByrInj  = (x[i]/rIni)*rIniByrInj; // Plane parallel assumption
 
-    //sqrt(r[i]*r[i] + rIni*rIni - 2*r[i]*rIni*( sin(th[j])*sin(thIni)*cos(phi[k]-phiIni) + cos(th[j])*cos(thIni) ));
-    double R = sqrt( (x-xIni)*(x-xIni) + (y-yIni)*(y-yIni) + (z-zIni)*(z-zIni) );
-    double distance = r[i];
-    double rByrInj  = (distance/rIni)*rIniByrInj;
-
-    d->Vc[RHO][k][j][i]   = CC85rho(rByrInj)/CC85rho(rIniByrInj);
-    d->Vc[PRS][k][j][i]   = CC85prs(rByrInj)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
-    d->Vc[iVR][k][j][i]   = CC85vel(rByrInj)/CC85vel(rIniByrInj);
-    d->Vc[iVTH][k][j][i]  = 0.;
-    d->Vc[iVPHI][k][j][i] = 0.;
+    d->Vc[RHO][k][j][i]   = 1.;
+    d->Vc[PRS][k][j][i]   = 1./(g_gamma*mach*mach);
+    d->Vc[VX1][k][j][i]   = 1.; //CC85vel(rByrInj)/CC85vel(rIniByrInj);
+    d->Vc[VX2][k][j][i]   = 0.;
+    d->Vc[VX3][k][j][i]   = 0.;
     d->Vc[TRC][k][j][i]   = 0.;
     if (R <= 1.0) {
       #if WIND_TEST == NO
-      d->Vc[RHO][k][j][i]  = chi*d->Vc[RHO][k][j][i]; // TST : Don't change density
-      d->Vc[iVR][k][j][i]  = 0.;
+      d->Vc[RHO][k][j][i]   = chi;
+      d->Vc[VX1][k][j][i]   =  0.;
       #endif
-      d->Vc[TRC][k][j][i]  = 1.;
+      d->Vc[TRC][k][j][i]   =  1.;
     }
   } /* TOT_LOOP(k,j,i)  */
 }
@@ -208,17 +172,20 @@ void Analysis (const Data *d, Grid *grid)
   int yr = 365*24*60*60;
   static double trc0 = 0.;
   static double trc0_all = 0.;
-  static double rIni, thIni, phiIni, chi, mach, rIniByrInj, tcc, factor, Tcl, mu, rho_cl;
+  static double rIni, chi, mach, tcc, factor, Tcl, mu, rho_cl;
   static int first = 0;
   static long int nstep = -1;
-  double temperature_cut[] = {1.2, 2.0, 3.0, g_inputParam[CHI]/3.-1.0, 10.0};
-  double rho_cut[] = {1.2, 2.0, 3.0, g_inputParam[CHI]/3.-1.0, 10.0};
+  double temperature_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0}; // temperature cutoff criteria
+  double rho_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
 
-  double *r  = grid->x[IDIR];
-  double tanl;
+  double *x  = grid->x[IDIR];
+  double *y  = grid->x[JDIR];
+  double *z  = grid->x[KDIR];
 
   double *xl = grid->xl[IDIR];
   double *xr = grid->xr[IDIR];
+
+  double tanl;
 
   if (first==0) {
     first = 1;
@@ -226,18 +193,15 @@ void Analysis (const Data *d, Grid *grid)
     mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
 
     rIni        = g_inputParam[RINI]; // cloud position in units of Rcl
-    thIni       = g_inputParam[THINI]*CONST_PI/180;
-    phiIni      = g_inputParam[PHIINI]*CONST_PI/180;
     chi         = g_inputParam[CHI];
     mach        = g_inputParam[MACH];
-    rIniByrInj  = CC85pos(mach);
 
     tcc      = sqrt(chi);
     factor   = sqrt(chi)/3;
-    Tcl      = (CC85prs(rIniByrInj)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2)))*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/(CONST_kB*chi); // in K
+    Tcl      = pow(UNIT_VELOCITY/mach,2)*(mu*CONST_mp)/(g_gamma*CONST_kB*chi); //in K just Twind/chi
     rho_cl   = chi;
   }
-  if (g_stepNumber==0) {
+  if (g_stepNumber==0){
     double dV;
     DOM_LOOP(k,j,i){
       dV = grid->dV[k][j][i]; // Cell volume in Spherical
@@ -261,7 +225,6 @@ void Analysis (const Data *d, Grid *grid)
   }
 
   if (trc0_all==0) { // Means we have restarted!
-    g_restart = 1;
     FILE *fp;
     char fname[512];
     int dummy;
@@ -276,20 +239,15 @@ void Analysis (const Data *d, Grid *grid)
     //printLog("Initial Tracer read as %e\n", trc0_all);
   }
 
-  double rByrInjTmin = ((rIni+1)/rIni) * rIniByrInj; // rightmost edge of the cloud is the coldest due to adiabatic expansion
-  double prsCodeTmin = CC85prs(rByrInjTmin)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
-  double rhoCodeTmin = CC85rho(rByrInjTmin)/CC85rho(rIniByrInj)*chi;
-  double Tcutoff     = (prsCodeTmin/rhoCodeTmin)*pow(UNIT_VELOCITY,2)*((CONST_mp*mu)/CONST_kB); //in K
-  Tcutoff = (Tcutoff>1.e4)?Tcutoff:1.e4;
+  double Tcutoff = (Tcl>1.e4)?Tcl:1.e4;
   double Tmax    = 1.e8;
 
   if (g_stepNumber<=nstep && g_time<=(tanl+0.5*g_anldt)) return;
-  g_restart = 0;
 
   double      trc   = 0.,      trc_all    = 0.;
   double mass_dense = 0., mass_dense_all  = 0.;
-  double vr_cloud = 0., vt_cloud = 0., vp_cloud = 0.;
-  double vr_cloud_all = 0., vt_cloud_all = 0., vp_cloud_all = 0.;
+  double vx_cloud = 0., vy_cloud = 0., vz_cloud = 0.;
+  double vx_cloud_all = 0., vy_cloud_all = 0., vz_cloud_all = 0.;
 
   double mass_cold[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
   double mass_cold_all[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
@@ -297,59 +255,55 @@ void Analysis (const Data *d, Grid *grid)
   double mass_cloud[(int)(sizeof(rho_cut) / sizeof(rho_cut[0]))];
   double mass_cloud_all[(int)(sizeof(rho_cut) / sizeof(rho_cut[0]))];
 
-  for (i=0; i<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); i++) {
+  for (i=0; i<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); i++){
     mass_cold[i] = 0.;
     mass_cold_all[i] = 0.;
   }
 
-  for (i=0; i<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); i++) {
+  for (i=0; i<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); i++){
     mass_cloud[i] = 0.;
     mass_cloud_all[i] = 0.;
   }
 
-  double dV, distance, rByrInj, rho_wind, prs_wind, T_wind, T_gas;
+  double dV, rByrInj, rho_wind, T_wind, T_gas;
   int cold_indx;
   int cloud_indx;
-  
+
   int spread_indx = (int)(sizeof(rho_cut) / sizeof(rho_cut[0])) - 1;
   double cloud_min = 2*grid->xend_glob[IDIR], cloud_max = 0.5*grid->xbeg_glob[IDIR];
   double cloud_spread;
 
+  rho_wind = 1.0*pow(g_dist_lab/g_inputParam[RINI], -2);
+  T_wind = MIN(MAX(chi*Tcl*pow(g_dist_lab/g_inputParam[RINI], -2*(g_gamma-1)), Tcutoff), Tmax);
+
   DOM_LOOP(k,j,i){
     dV = grid->dV[k][j][i]; // Cell volume
     trc         += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
-    vr_cloud    += d->Vc[RHO][k][j][i]*d->Vc[iVR][k][j][i]*d->Vc[TRC][k][j][i]*dV;
-    vt_cloud    += d->Vc[RHO][k][j][i]*d->Vc[iVTH][k][j][i]*d->Vc[TRC][k][j][i]*dV;
-    vp_cloud    += d->Vc[RHO][k][j][i]*d->Vc[iVPHI][k][j][i]*d->Vc[TRC][k][j][i]*dV;
+    vx_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX1][k][j][i]*d->Vc[TRC][k][j][i]*dV;
+    vy_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX2][k][j][i]*d->Vc[TRC][k][j][i]*dV;
+    vz_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX3][k][j][i]*d->Vc[TRC][k][j][i]*dV;
 
     if(d->Vc[RHO][k][j][i] >= (rho_cl/factor))
       mass_dense += d->Vc[RHO][k][j][i]*dV;
     // double temp_cut = 1.2e5;
-    distance = r[i];
-    rByrInj  = (distance/rIni)*rIniByrInj;
-    rho_wind = CC85rho(rByrInj)/CC85rho(rIniByrInj);
-    prs_wind = CC85prs(rByrInj)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
-    T_wind = MIN(MAX((prs_wind/rho_wind)*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB, Tcutoff), Tmax);
 
     T_gas = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
-      if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx])) {
-        if( T_gas <= (factor*Tcl) ) {
-          mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
-          if (cloud_indx == spread_indx) {
-            if (xl[i] < cloud_min) cloud_min = xl[i];
-            if (xr[i] > cloud_max) cloud_max = xr[i];
+        if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx])) {
+          if( T_gas <= (factor*Tcl) ) {
+            mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
+            if (cloud_indx == spread_indx) {
+              if (xl[i] < cloud_min) cloud_min = xl[i];
+              if (xr[i] > cloud_max) cloud_max = xr[i];
+            }
           }
         }
-      }
     }
-    if( T_gas <= (factor*Tcl) ){ // temp_cut){
-      for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+    if( T_gas <= (factor*Tcl) ){
+      for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++){
           if( T_gas <= (T_wind/temperature_cut[cold_indx]) )
             mass_cold[cold_indx] += d->Vc[RHO][k][j][i]*dV;
       }
-      /* if (d->Vc[RHO][k][j][i]>(rho_cl/sqrt(chi))) mass_cold += d->Vc[RHO][k][j][i]*dV; */
-      /* if (d->Vc[RHO][k][j][i] >= (rho_cl/factor)) mass_cold += d->Vc[RHO][k][j][i]*dV; */
     }
   }
 
@@ -370,7 +324,7 @@ void Analysis (const Data *d, Grid *grid)
   for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
     sendArray[transfer++] = mass_cloud[cloud_indx];
   }
-  sendArray[transfer++] = vr_cloud; sendArray[transfer++] = vt_cloud; sendArray[transfer++] = vp_cloud;
+  sendArray[transfer++] = vx_cloud; sendArray[transfer++] = vy_cloud; sendArray[transfer++] = vz_cloud;
   MPI_Allreduce (sendArray, recvArray, transfer_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // TODO: Replace this with Allreduce to improve on communication overhead
   transfer = 0;
   trc_all = recvArray[transfer++]; mass_dense_all = recvArray[transfer++];
@@ -380,7 +334,7 @@ void Analysis (const Data *d, Grid *grid)
   for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
     mass_cloud_all[cloud_indx] = recvArray[transfer++];
   }
-  vr_cloud_all = recvArray[transfer++]; vt_cloud_all = recvArray[transfer++]; vp_cloud_all = recvArray[transfer++];
+  vx_cloud_all = recvArray[transfer++]; vy_cloud_all = recvArray[transfer++]; vz_cloud_all = recvArray[transfer++];
 
   #else
   trc_all    = trc;
@@ -392,15 +346,15 @@ void Analysis (const Data *d, Grid *grid)
   for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
     mass_cloud_all[cloud_indx] = mass_cloud[cloud_indx];
   }
-  vr_cloud_all    = vr_cloud;
-  vt_cloud_all    = vt_cloud;
-  vp_cloud_all    = vp_cloud;
+  vx_cloud_all    = vx_cloud;
+  vy_cloud_all    = vy_cloud;
+  vz_cloud_all    = vz_cloud;
   #endif
   cloud_spread = fabs(cloud_max-cloud_min);
 
-  vr_cloud_all = vr_cloud_all/trc_all;
-  vt_cloud_all = vt_cloud_all/trc_all;
-  vp_cloud_all = vp_cloud_all/trc_all;
+  vx_cloud_all = vx_cloud_all/trc_all;
+  vy_cloud_all = vy_cloud_all/trc_all;
+  vz_cloud_all = vz_cloud_all/trc_all;
   trc_all     = trc_all/trc0_all; // trc0_all is M_cloud, ini
   mass_dense_all = mass_dense_all/trc0_all;
   for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
@@ -409,9 +363,9 @@ void Analysis (const Data *d, Grid *grid)
   for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
     mass_cloud_all[cloud_indx] = mass_cloud_all[cloud_indx]/trc0_all;
   }
-  g_trctrack = trc_all;
 
-  double v_cloud = sqrt(vr_cloud_all*vr_cloud_all + vt_cloud_all*vt_cloud_all + vp_cloud_all*vp_cloud_all);
+  vx_cloud_all += g_boost_vel;
+  double v_cloud = sqrt(vx_cloud_all*vx_cloud_all + vy_cloud_all*vy_cloud_all + vz_cloud_all*vz_cloud_all);
 
   /* ---- Write ascii file "analysis.dat" to disk ---- */
   if (prank == 0){
@@ -442,7 +396,7 @@ void Analysis (const Data *d, Grid *grid)
     if (g_stepNumber == 0){ /* Open for writing only when we are starting */
       fp = fopen(fname,"w"); /* from beginning */
       fprintf (fp,"# %s\t=\t%.5e\n", "tcc (code)", tcc);
-      fprintf (fp,"# %s\t=\t%.5e\n", "vwind_asymp (code)", (CC85vel(5.0)/CC85vel(rIniByrInj)) );
+      fprintf (fp,"# %s\t=\t%.5e\n", "vwind_asymp (code)", UNIT_VELOCITY );
       // Header
       fprintf (fp,"# (1)%s\t\t(2)%s\t(3)%s\t\t(4)%s\t\t(5)%s\t\t",
                "time (code)", "g_dist_lab (code)", "v_cloud (code)", "trc/trc0", buffer1); //, buffer2, "dt (code)");
@@ -455,34 +409,40 @@ void Analysis (const Data *d, Grid *grid)
       }
       fprintf (fp, "(%d)dt (code)\t\t", ++cont);
       #if WIND_TEST != NO
-      fprintf (fp, "(%d)rho (code)\n", ++cont);
-      #else
-      fprintf (fp, "(%d)cloud spread (code)\n", ++cont);
+      fprintf (fp, "(%d)rho (code)\t\t", ++cont);
+      fprintf (fp, "(%d)prs (code)\t\t", ++cont);
+      fprintf (fp, "(%d)vel (code)\t\t", ++cont);
       #endif
+      fprintf (fp, "(%d)cloud spread (code)\t\t", ++cont);
+      fprintf (fp, "\n");
       fclose(fp);
     }
     /* Append numeric data */
     fp = fopen(fname,"a");
     fprintf (fp, "%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t\t",
-             g_time, g_dist_lab, v_cloud, trc_all, mass_dense_all);
+             g_time, g_dist_lab, v_cloud, trc_all, mass_dense_all); // g_tmp
     for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
       fprintf (fp, "%12.6e\t\t\t", mass_cold_all[cold_indx]);
     }
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
       fprintf (fp, "%12.6e\t\t\t", mass_cloud_all[cloud_indx]);
     }
+    fprintf (fp, "%12.6e\t\t", g_dt);
     #if WIND_TEST != NO
     double tmp;
     DOM_LOOP(k, j, i) tmp = d->Vc[RHO][k][j][i];
-    fprintf (fp, "%12.6e\t\t%12.6e\t\t", g_dt, tmp);
-    #else
-    fprintf (fp, "%12.6e\t\t", g_dt);
+    fprintf (fp, "%12.6e\t\t", tmp);
+    DOM_LOOP(k, j, i) tmp = d->Vc[PRS][k][j][i];
+    fprintf (fp, "%12.6e\t\t", tmp);
+    DOM_LOOP(k, j, i) tmp = d->Vc[VX1][k][j][i];
+    fprintf (fp, "%12.6e\t\t", tmp+g_boost_vel);
     #endif
-    fprintf (fp, "%12.6e\t\t\n", cloud_spread);
+    fprintf (fp, "%12.6e\t\t", cloud_spread);
+    fprintf (fp, "\n");
     fclose(fp);
 
     /* Write restart file */
-    //printLog("Step %d: Writing Analysis restart!\n", g_stepNumber);
+    // printLog("Step %d: Writing Analysis restart!\n", g_stepNumber);
     FILE *frestart;
     sprintf (fname, "%s/restart-analysis.out", RuntimeGet()->output_dir);
     frestart = fopen(fname,"w");
@@ -539,95 +499,77 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   int i, j, k;
   int yr = 365*24*60*60;
 
-  double *r   = grid->x[IDIR];
-  double *th  = grid->x[JDIR];
-  double *phi = grid->x[KDIR];
+  double oth_mu[4];
+  double  mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
 
-  double *dr   = grid->dx[IDIR];
-  double *dth  = grid->dx[JDIR];
-  double *dphi = grid->dx[KDIR];
+  double *x   = grid->x[IDIR];
 
-  double rIni        = g_inputParam[RINI]; // cloud position in units of Rcl
-  double thIni       = g_inputParam[THINI]*CONST_PI/180;
-  double phiIni      = g_inputParam[PHIINI]*CONST_PI/180;
+  double *dx   = grid->dx[IDIR];
+
+  double rIni        = g_inputParam[RINI]; // Enter cloud position in Rcl
   double chi         = g_inputParam[CHI];
   double mach        = g_inputParam[MACH];
+
   double rIniByrInj  = CC85pos(mach);
+  double Tcl         = pow(UNIT_VELOCITY/mach,2)*(mu*CONST_mp)/(g_gamma*CONST_kB*chi); //in K
 
-  double oth_mu[4];
-  double mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
-  double rByrInjTmin = ((rIni+1)/rIni) * rIniByrInj; // rightmost edge of the cloud is the coldest due to adiabatic expansion
-  double prsCodeTmin = CC85prs(rByrInjTmin)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
-  double rhoCodeTmin = CC85rho(rByrInjTmin)/CC85rho(rIniByrInj)*chi;
-  double Tcutoff     = (prsCodeTmin/rhoCodeTmin)*pow(UNIT_VELOCITY,2)*((CONST_mp*mu)/CONST_kB); //in K
-  /*
-  double *xr = grid->xr[IDIR];
-  double cloud_max = 0.5*grid->xbeg_glob[IDIR];
-
-  DOM_LOOP (k,j,i) {
-    if (d->Vc[TRC][k][j][i] >= 1.0e-04) {
-      if (xr[i] > cloud_max) cloud_max = xr[i];
-    }
-  }
-
-  #ifdef PARALLEL
-  double pos_value;
-  MPI_Allreduce (&cloud_max, &pos_value, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-  cloud_max = pos_value;
+  #if SCALING != NO
+  double scale = g_dist_lab/rIni;
+  double cc85_exp[5] = {-2., -2.0*g_gamma, 0., -1., -1.};
   #endif
-  */
-  Tcutoff = (Tcutoff>1.e4)?Tcutoff:1.e4;
-
+  
   /* set steady wid profile at the boundary */
-  if (side == X1_BEG || side == X2_BEG || side == X3_BEG || side == X1_END || side == X2_END || side == X3_END){ /* -- select the boundary side -- */
-    BOX_LOOP(box,k,j,i){ /* -- Loop over boundary zones -- */
-      double distance = r[i];
-      double rByrInj  = (distance/rIni)*rIniByrInj;
-      // if (rByrInj<0) printLog("Problem: %f %f %f\n", r[i], rByrInj, rIniByrInj);
-      d->Vc[RHO][k][j][i]   = CC85rho(rByrInj)/CC85rho(rIniByrInj);
-      d->Vc[PRS][k][j][i]   = CC85prs(rByrInj)/(CC85rho(rIniByrInj)*pow(CC85vel(rIniByrInj),2));
-      d->Vc[iVR][k][j][i]   = CC85vel(rByrInj)/CC85vel(rIniByrInj);
-      d->Vc[iVTH][k][j][i]  = 0.;
-      d->Vc[iVPHI][k][j][i] = 0.;
+  /*
+  if (side == X1_BEG) {
+    /* -- select the boundary side -- *//*
+    BOX_LOOP(box,k,j,i) { /* -- Loop over boundary zones -- *//*
+      double rByrInj  = (g_dist_lab/rIni)*rIniByrInj;
+      double vel      = CC85vel(rByrInj)/CC85vel(rIniByrInj)
+      
+      d->Vc[RHO][k][j][i]   = 1.;
+      d->Vc[PRS][k][j][i]   = 1./(g_gamma*mach*mach);
+      d->Vc[VX1][k][j][i]   = vel;
+      d->Vc[VX2][k][j][i]   = 0.;
+      d->Vc[VX3][k][j][i]   = 0.;
       d->Vc[TRC][k][j][i]   = 0.;
+      #if SCALING != NO
+      d->Vc[RHO][k][j][i]   *= pow(scale, cc85_exp[0]);
+      d->Vc[PRS][k][j][i]   *= pow(scale, cc85_exp[1]);
+      d->Vc[VX1][k][j][i]   *= pow(scale, cc85_exp[2]);
+      d->Vc[VX2][k][j][i]   *= pow(scale, cc85_exp[3]);
+      d->Vc[VX3][k][j][i]   *= pow(scale, cc85_exp[4]);
+      #endif
+      #if TRACKING != NO
+      d->Vc[VX1][k][j][i]   -= g_boost_vel;
+      #endif
     }
   }
-
+*/
   /* set temperature floor */
   if (side == 0) { // -- select active cells --
     RBox dom_box;
     double gasTemperature;
+    double Tcutoff = Tcl;
     double Tmax    = 1.e8;
     double nmin    = 1e-6;
 
+    //int Np = 5;
     double oth_mu[4];
     double mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
     double rhomin  = (nmin*((CONST_mp*mu)/UNIT_DENSITY));
 
     TOT_LOOP(k,j,i) { // -- Loop over all cells --
-      /*
-      if (r[i] > (g_trcmax+10.) || r[i] < (g_trcmin-10.)) {
-        d->flag[k][j][i] |= FLAG_INTERNAL_BOUNDARY;
-        continue;
-      }
-      else if (d->flag[k][j][i] == FLAG_INTERNAL_BOUNDARY && r[i] <= (g_trcmax+10.) && r[i] >= (g_trcmin-10.))
-        d->flag[k][j][i] = 0;
-      #if VERBOSE != NO
-      if (d->flag[k][j][i] != 0)
-        printLog("d->flag[k][j][i] %d, %d \n",  d->flag[k][j][i], d->flag[k][j][i] | FLAG_INTERNAL_BOUNDARY);
-      #endif
-      */
       int convert_to_cons = 0;
       gasTemperature = ((d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB);
-      if (gasTemperature<Tcutoff) {
-        d->Vc[PRS][k][j][i] = (d->Vc[RHO][k][j][i]*Tcutoff)/(pow(UNIT_VELOCITY,2)*((CONST_mp*mu)/CONST_kB));
+      if (gasTemperature<Tcutoff){
+        d->Vc[PRS][k][j][i] = (d->Vc[RHO][k][j][i]*Tcutoff)/(pow(UNIT_VELOCITY,2)*((CONST_mp*mu)/CONST_kB) );
         convert_to_cons = 1;
       }
-      if (gasTemperature>Tmax) {
+      if (gasTemperature>Tmax ){
         if (d->Vc[PRS][k][j][i] > 0) d->Vc[RHO][k][j][i] = (d->Vc[PRS][k][j][i]/Tmax)*(mu*CONST_mp/CONST_kB)*pow(UNIT_VELOCITY,2);
         convert_to_cons = 1;
       }
-      if (convert_to_cons) {
+      if (convert_to_cons){
         RBoxDefine (i, i, j, j, k, k, CENTER, &dom_box);
         PrimToCons3D(d->Vc, d->Uc, &dom_box);
       }

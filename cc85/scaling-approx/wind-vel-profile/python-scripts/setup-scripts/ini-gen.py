@@ -12,7 +12,7 @@ globals().update(vars(constants_add_misc)) #imported variables
 Rclbydcell  = 8 #resolution
 Npar   = 400
 Nprp   = 20
-Nleft  = 100
+Nleft  = 5
 
 Rbarini  = Rini/Rinj
 Rinj     = Rinj/Rcl # code units
@@ -72,7 +72,7 @@ Solver         hllc
 
 [Boundary]
 
-X1-beg        outflow
+X1-beg        userdef
 X1-end        outflow
 X2-beg        outflow
 X2-end        outflow

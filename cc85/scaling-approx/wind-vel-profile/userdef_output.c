@@ -34,8 +34,16 @@ void ComputeUserVar (const Data *d, Grid *grid)
   double rByrInj;
   double rho_wind, T_wind;
 
+  #if COOLING==NO || COOLING==TABULATED || COOLING==TOWNSEND
+  double dummy[4];
+  double mu = MeanMolecularWeight((double*)d->Vc, dummy);
+  #else
+  double mu = MeanMolecularWeight((double*)d->Vc);
+  #endif
+
   double Tcutoff = 1.0e+04;
   double Tmax    = 1.0e+08;
+  double Tcl     = pow(UNIT_VELOCITY/mach_ini,2)*(mu*CONST_mp)/(g_gamma*CONST_kB*chi); //in K just Twind/chi
 
   /*
   double ***rtld  = GetUserVar("rtld");
@@ -52,12 +60,6 @@ void ComputeUserVar (const Data *d, Grid *grid)
   double prs_norm = pow(Mdot,  1/2.)*pow(Edot,  1/2.)*pow(RInj, -2);
   double vel_norm = pow(Mdot, -1/2.)*pow(Edot,  1/2.);
   */
-  #if COOLING==NO || COOLING==TABULATED || COOLING==TOWNSEND
-  double dummy[4];
-  double mu = MeanMolecularWeight((double*)d->Vc, dummy);
-  #else
-  double mu = MeanMolecularWeight((double*)d->Vc);
-  #endif
 
   rho_wind = 1.0*pow(g_dist_lab/g_inputParam[RINI], -2);
   T_wind = MIN(MAX(chi*Tcl*pow(g_dist_lab/g_inputParam[RINI], -2*(g_gamma-1)), Tcutoff), Tmax);

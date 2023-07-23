@@ -59,19 +59,12 @@ LAMBDA = interp1d(LAMBDA[:,0], LAMBDA[:,1], fill_value='extrapolate')
 chi = 100
 Mw = 1.5
 tcoolmBytcc = 0.08
-RinibyRcl = 200
-Tcl = 4e4 #K
+Tcl = 4e4 # K
+RinibyRcl = 40
 
-PinibykB = 1e3 #Kcm^-3, degenerate
+PinibykB = 1.0e+06 # 2.5e+05 # Kcm^-3, degenerate
 
-# Our model params
-chi = 1143
-Mw = 4.993191399557429
-tcoolmBytcc = 0.003304105670882433
-RinibyRcl = 625/75
-Tcl = 1e4 #K
-PinibykB = 419955.6141084651 #Kcm^-3
-'''
+
 # New parameters
 chi = 100
 Mw = 1.8
@@ -79,7 +72,17 @@ tcoolmBytcc = 0.1
 Tcl = 4e4 # K
 RinibyRcl = 40
 
-PinibykB = 2.5e5 # Kcm^-3, degenerate
+PinibykB = 2.5e+05 # Kcm^-3, degenerate
+'''
+
+# From dimensional parameters
+chi = 100
+Mw = 1.496
+tcoolmBytcc = 0.80
+Tcl = 4.0e+04 # K
+RinibyRcl = 282.684
+
+PinibykB = 2.020e+06 # Kcm^-3, degenerate
 
 Tw = chi*Tcl
 Pw = PinibykB*kB
@@ -90,7 +93,9 @@ rhoTini = rhonorm(RinibyRinj)
 prsTini = prsnorm(RinibyRinj)
 velTini = velnorm(RinibyRinj)
 
-Rgo  = 2 * (Tcl/1e4)**(5/2)*Mw/((PinibykB/1e3)*(LAMBDA(np.sqrt(chi)*Tcl)/10**-21.4) ) *(chi/100) * (alpha**-1) # pc
+# Rgo  = 2 * (Tcl/1e4)**(5/2)*Mw/((PinibykB/1e3)*(LAMBDA(np.sqrt(chi)*Tcl)/10**-21.4) ) *(chi/100) * (alpha**-1) # pc
+# Rgo  = (1.97) * (Tcl/1e4)**(5/2)*Mw/((PinibykB/1e3)*(LAMBDA(np.sqrt(chi)*Tcl)/10**-21.29) ) * (chi/100) * (alpha**-1) # pc
+Rgo  = 10.378 * (Tcl/1e4)**(5/2)*Mw/((PinibykB/1e3)*(LAMBDA(np.sqrt(chi)*Tcl)/10**-21.29) ) * (chi/100) * (alpha**-1) # pc
 Rcl  = (tcoolmBytcc**-1) * Rgo # pc
 Rini = RinibyRcl*Rcl # pc
 Rinj = Rini/RinibyRinj # pc
@@ -104,6 +109,7 @@ Edot = ((Pw/prsTini) * (vw/velTini) *(Rinj*pc)**2) #erg s^-1
 
 sanity = (rhow/rhoTini)/((Pw/prsTini)*(vw/velTini)**-2)
 
+print('M_ini = %.3f'%Mw)
 print('Mdot = %.2e MSun/yr'%Mdot)
 print('Edot = %.2e erg/s'%Edot)
 print('R_inj = %.2e pc'%(Rinj*pc/pc))
@@ -111,6 +117,8 @@ print('R_ini = %.2e pc'%(Rini*pc/pc))
 print('R_cl = %.2e pc'%(Rcl*pc/pc))
 print('R_go = %.2e pc'%Rgo)
 print('T_cl = %.2e K'%Tcl)
+print('R_ini/R_inj = %.2f'%(Rini/Rinj))
+print('R_inj/R_cl = %.2f'%(Rinj/Rcl))
 
 UNIT_LENGTH   = Rcl* pc
 UNIT_DENSITY  = rhoTini* ((Mdot*(MSun/yr))**1.5) * (Edot**-0.5) * ((Rinj*pc)**-2)
@@ -129,7 +137,7 @@ f'''
 #define  TIME_STEPPING                  RK2
 #define  DIMENSIONAL_SPLITTING          NO
 #define  NTRACER                        1
-#define  USER_DEF_PARAMETERS            6
+#define  USER_DEF_PARAMETERS            7
 
 /* -- physics dependent declarations -- */
 
@@ -143,6 +151,7 @@ f'''
 #define  SHOW_TIMING                    NO
 #define  SHOW_TIME_STEPS                YES
 #define  TRACKING                       YES
+#define  WIND_TEST                      NO
 
 /* -- user-defined parameters (labels) -- */
 
@@ -152,6 +161,7 @@ f'''
 #define  CHI                            3
 #define  MACH                           4
 #define  ZMET                           5
+#define  BUFFER_TRACK                   6
 
 /* [Beg] user-defined constants (do not change this line) */
 
@@ -170,3 +180,58 @@ definitions = definitions[1:]
 if __name__ == '__main__':
     with open("../../definitions.h", "w") as text_file:
         text_file.write(definitions)
+        
+nl  = "\\n"
+tab = "\\t"
+
+info_code = f"""
+void write_info (char* filename) {{
+  if (prank!=0) return;
+  FILE *fp;
+  sprintf (filename, "%s/%s", RuntimeGet()->output_dir, filename);
+  fp = fopen(filename,"w"); /* from beginning */
+  fprintf (fp,"id: growth_test{nl}");
+  fprintf (fp,"paths:{nl}- {{root}}/%s{nl}", RuntimeGet()->output_dir);
+  fprintf (fp,"simulation attributes:{nl}");
+  #if COOLING != NO
+  fprintf (fp,"{tab}has_cooling: yes{nl}");
+  #else
+  fprintf (fp,"{tab}has_cooling: no{nl}");
+  #endif
+  #if GEOMETRY == SPHERICAL
+  fprintf (fp,"{tab}geometry: spherical{nl}");
+  #elif GEOMETRY == CARTESIAN
+  fprintf (fp,"{tab}geometry: cartesian{nl}");
+  #elif GEOMETRY == POLAR
+  fprintf (fp,"{tab}geometry: polar{nl}");
+  #else
+  printLog("Unsupported Geometry!{nl}");
+  QUIT_PLUTO(1);
+  #endif
+  fprintf (fp,"{tab}dimensioality: %d{nl}", DIMENSIONS);
+
+  fprintf (fp,"parameters:{nl}");
+  fprintf (fp,"{tab}chi: %.3f{nl}", g_inputParam[CHI]); 
+  fprintf (fp,"{tab}Mach_ini: %.3f{nl}", g_inputParam[MACH]);
+  fprintf (fp,"{tab}coolmBytcc: %.3f{nl}", {tcoolmBytcc});
+  fprintf (fp,"{tab}RinibyRcl: %.3f{nl}", g_inputParam[RINI]);
+  fprintf (fp,"{tab}Tcl: %.2e{nl}", {Tcl});
+  fprintf (fp,"{tab}PinibykB: %.3e{nl}", {PinibykB});
+
+  fprintf (fp,"wind properties:{nl}");
+  fprintf (fp,"{tab}Edot : %.3e{nl}", {Edot});
+  fprintf (fp,"{tab}Mdot : %.3e{nl}", {Mdot});
+  fprintf (fp,"{tab}Rinj : %.3f{nl}", {Rinj});
+  fprintf (fp,"{tab}Rini : %.3f{nl}", {Rini}); 
+  fprintf (fp,"{tab}Rcl  : %.3f{nl}", {Rcl});
+
+  fprintf (fp,"code units:{nl}");
+  fprintf (fp,"{tab}unit_dens: %e{nl}", UNIT_DENSITY);
+  fprintf (fp,"{tab}unit_len: %e{nl}",  UNIT_LENGTH);
+  fprintf (fp,"{tab}unit_vel: %e{nl}",  UNIT_VELOCITY);
+"""
+
+info_code = info_code[1:]
+if __name__ != '__main__':
+    with open("../../info.h", "w") as text_file:
+        text_file.write(info_code)
