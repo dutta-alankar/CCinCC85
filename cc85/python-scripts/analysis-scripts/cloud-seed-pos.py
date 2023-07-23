@@ -80,7 +80,7 @@ Rcl  = (tcoolmBytcc**-1) * Rgo # pc
 Rini = np.array([RinibyRcl[i]*Rcl for i in range(RinibyRcl.shape[0])]) # pc
 Rinj = np.array([Rini[i,:]/RinibyRinj for i in range(RinibyRcl.shape[0])])  # pc
 
-Mdot = np.array([((Pw/prsTini) * (vw/velTini)**(-1) *(Rinj[i,:]*pc)**2) / (MSun/yr) for i in range(RinibyRcl.shape[0])]) 
+Mdot = np.array([((Pw/prsTini) * (vw/velTini)**(-1) *(Rinj[i,:]*pc)**2) / (MSun/yr) for i in range(RinibyRcl.shape[0])])
 Edot = np.array([((Pw/prsTini) * (vw/velTini) *(Rinj[i,:]*pc)**2) for i in range(RinibyRcl.shape[0])])  #erg s^-1
 
 # Equivalent alternate expression
@@ -134,18 +134,18 @@ colors = plt.cm.magma(RinibyRcl)
 
 fig = plt.figure(figsize=(14, 12))
 for i in range(RinibyRcl.shape[0]):
-    plt.loglog(PinibykB, Rini[i,:], 
-             label=r"$r_{ini}/R_{cl}$=%d"%RinibyRcl[i], 
+    plt.loglog(PinibykB, Rini[i,:],
+             label=r"$r_{ini}/R_{cl}$=%d"%RinibyRcl[i],
              color=colors[i])
-secax = plt.gca().secondary_xaxis('top', 
+secax = plt.gca().secondary_xaxis('top',
                                   functions=(
-                                  interp1d(PinibykB, Rcl, fill_value='extrapolate'), 
+                                  interp1d(PinibykB, Rcl, fill_value='extrapolate'),
                                   interp1d(Rcl, PinibykB, fill_value='extrapolate')))
 secax.set_xlabel(r"$R_{cl}$ (pc)")
 
-secay = plt.gca().secondary_yaxis('right', 
+secay = plt.gca().secondary_yaxis('right',
                                   functions=(
-                                  interp1d(Rini[0,:], Rini[0,:]/RinibyRinj, fill_value='extrapolate'), 
+                                  interp1d(Rini[0,:], Rini[0,:]/RinibyRinj, fill_value='extrapolate'),
                                   interp1d(Rini[0,:]/RinibyRinj, Rini[0,:], fill_value='extrapolate')))
 secay.set_ylabel(r"$R_{inj}$ (pc)")
 
@@ -159,7 +159,7 @@ plt.close()
 fig = plt.figure(figsize=(13, 10))
 for i in range(RinibyRcl.shape[0]):
     plt.loglog(PinibykB, Edot[i,:],
-               label=r"$r_{ini}/R_{cl}$=%d"%RinibyRcl[i], 
+               label=r"$r_{ini}/R_{cl}$=%d"%RinibyRcl[i],
                color=colors[i])
 plt.xlabel(r"$P_{ini}/k_B\ (K cm^{-3})$")
 plt.ylabel(r"Edot ($erg s ^{-1}$)")
@@ -171,7 +171,7 @@ plt.close()
 fig = plt.figure(figsize=(13, 10))
 for i in range(RinibyRcl.shape[0]):
     plt.loglog(PinibykB, Mdot[i,:],
-               label=r"$r_{ini}/R_{cl}$=%d"%RinibyRcl[i], 
+               label=r"$r_{ini}/R_{cl}$=%d"%RinibyRcl[i],
                color=colors[i])
 plt.xlabel(r"$P_{ini}/k_B\ (K cm^{-3})$")
 plt.ylabel(r"Mdot ($M_{\odot} yr ^{-1}$)")

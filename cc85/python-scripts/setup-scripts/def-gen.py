@@ -180,7 +180,7 @@ definitions = definitions[1:]
 if __name__ == '__main__':
     with open("../../definitions.h", "w") as text_file:
         text_file.write(definitions)
-        
+
 nl  = "\\n"
 tab = "\\t"
 
@@ -211,7 +211,7 @@ void write_info (char* filename) {{
   fprintf (fp,"{tab}dimensioality: %d{nl}", DIMENSIONS);
 
   fprintf (fp,"parameters:{nl}");
-  fprintf (fp,"{tab}chi: %.3f{nl}", g_inputParam[CHI]); 
+  fprintf (fp,"{tab}chi: %.3f{nl}", g_inputParam[CHI]);
   fprintf (fp,"{tab}Mach_ini: %.3f{nl}", g_inputParam[MACH]);
   fprintf (fp,"{tab}coolmBytcc: %.3f{nl}", {tcoolmBytcc});
   fprintf (fp,"{tab}RinibyRcl: %.3f{nl}", g_inputParam[RINI]);
@@ -222,7 +222,7 @@ void write_info (char* filename) {{
   fprintf (fp,"{tab}Edot : %.3e{nl}", {Edot});
   fprintf (fp,"{tab}Mdot : %.3e{nl}", {Mdot});
   fprintf (fp,"{tab}Rinj : %.3f{nl}", {Rinj});
-  fprintf (fp,"{tab}Rini : %.3f{nl}", {Rini}); 
+  fprintf (fp,"{tab}Rini : %.3f{nl}", {Rini});
   fprintf (fp,"{tab}Rcl  : %.3f{nl}", {Rcl});
 
   fprintf (fp,"code units:{nl}");

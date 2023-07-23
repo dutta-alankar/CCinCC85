@@ -137,15 +137,15 @@ plt.semilogy(rbyrInj, Rcl_min, color="tab:blue", label=r"$R_{cl,min}$", alpha=0.
 plt.semilogy(rbyrInj, Rcl_max, color="tab:red", label=r"$R_{cl,max}=r_{ini}/200$", alpha=0.7)
 plt.semilogy(rbyrInj, Rcl_dest, color="tab:red", linestyle=":", label=r"$R_{cl,dest}=r_{ini}/100$", alpha=0.7)
 
-secax = plt.gca().secondary_xaxis('top', 
+secax = plt.gca().secondary_xaxis('top',
                                   functions=(
-                                  interp1d(rbyrInj, mach(rbyrInj), fill_value='extrapolate'), 
+                                  interp1d(rbyrInj, mach(rbyrInj), fill_value='extrapolate'),
                                   interp1d(mach(rbyrInj), rbyrInj, fill_value='extrapolate')))
 secax.set_xlabel(r"$\mathcal{M}$")
 '''
-secay = plt.gca().secondary_yaxis('right', 
+secay = plt.gca().secondary_yaxis('right',
                                   functions=(
-                                  interp1d(Temperature, Temperature/(Tcl/1e6), fill_value='extrapolate'), 
+                                  interp1d(Temperature, Temperature/(Tcl/1e6), fill_value='extrapolate'),
                                   interp1d(Temperature/(Tcl/1e6), Temperature, fill_value='extrapolate')))
 secay.set_ylabel(r"$\chi$")
 '''
@@ -154,7 +154,7 @@ Mach_ini = 1.385
 Rini = relpos_mach(Mach_ini) * Rinj # pc
 RinibyRcl   = np.array([23.382, 31.176, 77.941, 116.911, 202.646, 311.763, 974.260])
 tcoolmBytcc = np.array([0.06,   0.08,   0.20,   0.30,    0.52,    0.80,    2.5    ])
-status      =          ['P',    'D',    'P',    'D',     'G',     'P',     'D']  
+status      =          ['P',    'D',    'P',    'D',     'G',     'P',     'D']
 Rcl = Rini/RinibyRcl # pc
 
 cond = np.logical_and(rbyrInj>=1.0, Rcl_max>=Rcl_min)
@@ -165,7 +165,7 @@ for i, txt in enumerate(tcoolmBytcc):
     if status[i]=='P': color="tab:gray"
     plt.scatter([relpos_mach(Mach_ini),], Rcl[i], s=35, marker="x", color=color)
     plt.gca().annotate(f"{str(txt)}, {status[i]}",
-                       ((relpos_mach(Mach_ini)+0.03)*np.ones_like(Rcl)[i], Rcl[i]), 
+                       ((relpos_mach(Mach_ini)+0.03)*np.ones_like(Rcl)[i], Rcl[i]),
                        size=18, weight="bold",
                        color = color)
 plt.legend(loc="best")

@@ -146,14 +146,14 @@ fig = plt.figure(figsize=(15, 12))
 radius = np.linspace(1,3.5, 100)*Rinj
 Temperature = (prsnorm(radius/Rinj)*prs_0)/(rhonorm(radius/Rinj)*rho_0)*mu*mp/kB # K
 plt.plot(radius, Temperature/1e6, color="tab:red")
-secax = plt.gca().secondary_xaxis('top', 
+secax = plt.gca().secondary_xaxis('top',
                                   functions=(
-                                  interp1d(radius, radius/Rcl, fill_value='extrapolate'), 
+                                  interp1d(radius, radius/Rcl, fill_value='extrapolate'),
                                   interp1d(radius/Rcl, radius, fill_value='extrapolate')))
 secax.set_xlabel(r"$r/R_{cl}$")
-secay = plt.gca().secondary_yaxis('right', 
+secay = plt.gca().secondary_yaxis('right',
                                   functions=(
-                                  interp1d(Temperature, Temperature/(Tcl/1e6), fill_value='extrapolate'), 
+                                  interp1d(Temperature, Temperature/(Tcl/1e6), fill_value='extrapolate'),
                                   interp1d(Temperature/(Tcl/1e6), Temperature, fill_value='extrapolate')))
 secay.set_ylabel(r"$\chi$")
 plt.xlabel(r"Distance (pc)")
@@ -168,9 +168,9 @@ RinibyRcl = Rini/Rcl
 
 fig = plt.figure(figsize=(13, 10))
 plt.loglog(tcoolmbytcc, RinibyRcl, color="tab:red")
-secay = plt.gca().secondary_yaxis('right', 
+secay = plt.gca().secondary_yaxis('right',
                                   functions=(
-                                  interp1d(RinibyRcl, Rcl, fill_value='extrapolate'), 
+                                  interp1d(RinibyRcl, Rcl, fill_value='extrapolate'),
                                   interp1d(Rcl, RinibyRcl, fill_value='extrapolate')))
 secay.set_ylabel(r"$R_{cl}$")
 plt.xlabel(r"$t_{cool,mix}/t_{cc}$")
@@ -181,4 +181,3 @@ plt.vlines(x=0.3, ymin=np.min(RinibyRcl), ymax=np.max(RinibyRcl), color="black",
 plt.hlines(y=100, xmin=np.min(tcoolmbytcc), xmax=np.max(tcoolmbytcc), color="black", linestyle=":")
 plt.savefig("cloud-size.png")
 plt.close()
-

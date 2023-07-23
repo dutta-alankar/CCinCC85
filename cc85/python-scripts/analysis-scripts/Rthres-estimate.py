@@ -54,4 +54,3 @@ print("Lambda_m = 10**%f cgs"%np.log10(Lambda_m))
 alpha = 1.0
 expr = (Tcl/1e4)**(5/2)*Mach/(((P_by_kB)/1e3)*(LAMBDA(np.sqrt(chi)*Tcl)/10**-21.29) ) * (chi/100) * (alpha**-1)
 print("test = %f"%expr)
-

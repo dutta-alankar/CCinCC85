@@ -168,5 +168,3 @@ plt.legend(loc="best")
 plt.xlabel(r"$r/R_{inj}$")
 plt.ylabel(r"p/$\rm k_B$ $(K cm^{-3})$")
 plt.savefig("compare-prs.png")
-
-

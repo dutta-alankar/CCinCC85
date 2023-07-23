@@ -163,14 +163,14 @@ plt.close()
 
 fig = plt.figure(figsize=(16, 12))
 plt.semilogy(RinibyRcl, tcoolmbytcc, color="tab:red")
-secax = plt.gca().secondary_xaxis('top', 
+secax = plt.gca().secondary_xaxis('top',
                                   functions=(
-                                  interp1d(RinibyRcl, Mach_ini, fill_value='extrapolate'), 
+                                  interp1d(RinibyRcl, Mach_ini, fill_value='extrapolate'),
                                   interp1d(Mach_ini,  RinibyRcl, fill_value='extrapolate')))
 secax.set_xlabel(r"$\mathcal{M}$")
-secay = plt.gca().secondary_yaxis('right', 
+secay = plt.gca().secondary_yaxis('right',
                                   functions=(
-                                  interp1d(tcoolmbytcc, chi, fill_value='extrapolate'), 
+                                  interp1d(tcoolmbytcc, chi, fill_value='extrapolate'),
                                   interp1d(chi,  tcoolmbytcc, fill_value='extrapolate')))
 secay.set_ylabel(r"$\chi$")
 

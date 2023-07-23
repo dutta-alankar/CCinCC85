@@ -23,7 +23,7 @@ void ApplyWindScaling (const Data *d, Grid *grid, double *all_scales)
 {
   double scale     = all_scales[0];
   double vx_factor = all_scales[1];
-  
+
   int i, j, k;
   int iend = grid->lend[IDIR] + grid->nghost[IDIR];
   int jend = grid->lend[JDIR] + grid->nghost[JDIR];
@@ -111,7 +111,7 @@ int store_or_save_cloud_pos(double position, double velocity, int save) {
     cloud_vel = 0.;
     #else
     cloud_vel = 1.0;
-    #endif  
+    #endif
     return 0;
   }
   if (save == 0 && g_stepNumber>0){
@@ -209,14 +209,14 @@ double* calc_scale(double vx_cloud, double dt)
   double rIni        = g_inputParam[RINI]; // Enter cloud position in Rcl
   double mach        = g_inputParam[MACH];
   double rIniByrInj  = CC85pos(mach);
-  
-  double rByrInj_now  = (cloud_pos/rIni)*rIniByrInj; 
-  double rByrInj_old  = (cloud_pos_old/rIni)*rIniByrInj; 
+
+  double rByrInj_now  = (cloud_pos/rIni)*rIniByrInj;
+  double rByrInj_old  = (cloud_pos_old/rIni)*rIniByrInj;
   // printLog("Debug: %.2e %.2e\n", rByrInj_old, rByrInj_now);
   double vx_factor    = (CC85vel(rByrInj_now)-CC85vel(rByrInj_old));
   // g_tmp = rByrInj_now-rByrInj_old;
   //g_tmp = CC85vel(rByrInj_now)-CC85vel(rByrInj_old);
-  
+
   all_scales[0] = scale;
   all_scales[1] = vx_factor;
 

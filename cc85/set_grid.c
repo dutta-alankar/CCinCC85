@@ -1,9 +1,9 @@
 /* ///////////////////////////////////////////////////////////////////// */
-/*! 
-  \file  
+/*!
+  \file
   \brief Create global and local grid.
 
-  Collects functions for allocating memory and defining grid 
+  Collects functions for allocating memory and defining grid
   coordinates.
 
   \author A. Mignone (mignone@to.infn.it)
@@ -17,14 +17,14 @@ static void stretch_fun (double, double *, double *, double *);
 
 /* ********************************************************************* */
 void SetGrid (Runtime *rtime, int *procs, Grid *grid)
-/*! 
+/*!
  *
  * \param [in]  rtime    pointer to Runtime structure, used for defining
  *                       the global grid.
  * \param [in]  procs    an array containing the number of processors
  *                       along the three diretions (parallel only).
  * \param [in]  grid     a pointer to the Grid structure
- * 
+ *
  *********************************************************************** */
 {
   // printLog("Inside set_grid\n");
@@ -117,15 +117,15 @@ printf ("[GridCreateGlobal()] dim = %d; array gsize = %d; gbeg, gend = %d, %d\n"
      -------------------------------------------- */
 
     for (i = 0; i < ngh; i++) {
-    
-   /*  ---- left boundary  ----  */        
-   
+
+   /*  ---- left boundary  ----  */
+
       dx[i] = dx[ibeg];
       xl[i] = xl[ibeg] - (ngh - i)*dx[ibeg];
       xr[i] = xl[i] + dx[ibeg];
-    
-   /*  ---- right boundary  ----  */   
-        
+
+   /*  ---- right boundary  ----  */
+
       dx[iend+i+1] = dx[iend];
       xl[iend+i+1] = xl[iend] + (i + 1)*dx[iend];
       xr[iend+i+1] = xl[iend] + (i + 2)*dx[iend];
@@ -144,7 +144,7 @@ printf ("[GridCreateGlobal()] dim = %d; array gsize = %d; gbeg, gend = %d, %d\n"
   }
 
 /* ----------------------------------------------
-   3. Write grid file 
+   3. Write grid file
    ---------------------------------------------- */
 
   if (prank == 0 && g_stepNumber == 0) {
@@ -157,7 +157,7 @@ printf ("[GridCreateGlobal()] dim = %d; array gsize = %d; gbeg, gend = %d, %d\n"
     sprintf (fname,"%s/grid.out", rtime->output_dir);
     fg = fopen(fname,"w");
     fprintf (fg, "# ******************************************************\n");
-    #ifdef CHOMBO  
+    #ifdef CHOMBO
     fprintf (fg, "# PLUTO-Chombo %s (Base) Grid File\n",PLUTO_VERSION);
     #else
     fprintf (fg, "# PLUTO %s Grid File\n",PLUTO_VERSION);
@@ -169,7 +169,7 @@ printf ("[GridCreateGlobal()] dim = %d; array gsize = %d; gbeg, gend = %d, %d\n"
 
     fprintf (fg, "# \n");
     fprintf (fg,"# DIMENSIONS: %d\n",DIMENSIONS);
-    #if GEOMETRY == CARTESIAN 
+    #if GEOMETRY == CARTESIAN
     fprintf (fg, "# GEOMETRY:   CARTESIAN\n");
     #elif GEOMETRY == CYLINDRICAL
     fprintf (fg, "# GEOMETRY:   CYLINDRICAL\n");
@@ -180,7 +180,7 @@ printf ("[GridCreateGlobal()] dim = %d; array gsize = %d; gbeg, gend = %d, %d\n"
     #endif
     DIM_LOOP(idim){
       fprintf (fg, "# X%d: [% f, % f], %d point(s), %d ghosts\n", idim+1,
-               g_domBeg[idim], g_domEnd[idim], 
+               g_domBeg[idim], g_domEnd[idim],
                grid->np_int_glob[idim], grid->nghost[idim]);
     }
     fprintf (fg, "# ******************************************************\n");
@@ -190,7 +190,7 @@ printf ("[GridCreateGlobal()] dim = %d; array gsize = %d; gbeg, gend = %d, %d\n"
       iend = grid->gend[idim];
       fprintf (fg, "%d \n", iend - ibeg + 1);
       for (i = ibeg; i <= iend; i++) {
-       fprintf (fg, " %d   %18.12e    %18.12e\n", 
+       fprintf (fg, " %d   %18.12e    %18.12e\n",
                 i-ngh+1, grid->xl_glob[idim][i], grid->xr_glob[idim][i]);
       }
     }
@@ -209,7 +209,7 @@ printf ("[GridCreateGlobal()] dim = %d; array gsize = %d; gbeg, gend = %d, %d\n"
   for (idim = 0; idim < 3; idim++) {
     beg[idim] = grid->gbeg[idim];
     end[idim] = grid->gend[idim];
-  } 
+  }
   #endif
 
   for (idim = 0; idim < 3; idim++){
@@ -250,7 +250,7 @@ printf ("[GridCreateGlobal()] dim = %d; array gsize = %d; gbeg, gend = %d, %d\n"
    ---------------------------------------------- */
    /*
   printLog("Calling set_geometry\n");
-  
+
   double dV, trc = 0., dvol=0.;
   int ii, jj, kk;
   double tmp;
@@ -296,11 +296,11 @@ printf ("[GridCreateGlobal()] dim = %d; array gsize = %d; gbeg, gend = %d, %d\n"
     DIM_LOOP(idim){
       if (fabs(g_domEnd[idim] - g_domBeg[idim]) >= 1.e4) { /* Use scientific notation */
         printLog ("  X%d: [ %12.6e, %12.6e], %6d point(s), %d ghosts\n", idim+1,
-                 g_domBeg[idim], g_domEnd[idim], 
+                 g_domBeg[idim], g_domEnd[idim],
                  grid->np_int_glob[idim], grid->nghost[idim]);
       }else{                                              /* Use float notation */
         printLog ("  X%d: [ %8.4f, %8.4f], %6d point(s), %d ghosts\n", idim+1,
-                 g_domBeg[idim], g_domEnd[idim], 
+                 g_domBeg[idim], g_domEnd[idim],
                  grid->np_int_glob[idim], grid->nghost[idim]);
       }
     }
@@ -310,13 +310,13 @@ printf ("[GridCreateGlobal()] dim = %d; array gsize = %d; gbeg, gend = %d, %d\n"
     DIM_LOOP(idim){
       if (fabs(g_domEnd[idim] - g_domBeg[idim]) >= 1.e4) { /* Use scientific notation */
         printLog ("  X%d: [ %-13.6e, %-13.6e], %6d point(s); %d ghosts;", idim+1,
-                 grid->xbeg[idim], grid->xend[idim], 
+                 grid->xbeg[idim], grid->xend[idim],
                  grid->np_int[idim], grid->nghost[idim]);
         printLog (" Active zones = [%d, %d]\n",
                  grid->nghost[idim], grid->np_int[idim] + grid->nghost[idim]-1);
       }else{
         printLog ("  X%d: [ %8.4f, %8.4f], %6d point(s); %d ghosts;", idim+1,
-                 grid->xbeg[idim],   grid->xend[idim], 
+                 grid->xbeg[idim],   grid->xend[idim],
                  grid->np_int[idim], grid->nghost[idim]);
         printLog (" Active zones = [%d, %d]\n",
                  grid->nghost[idim], grid->np_int[idim] + grid->nghost[idim]-1);
@@ -357,16 +357,16 @@ void FreeGrid (Grid *grid)
 
 /* ********************************************************************* */
 void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
-/*! 
+/*!
  *
  *  Build grid nodes as defined by pluto.ini.
  *
  *  Options are:
- *  
+ *
  *  'u' = uniform grid, simply defined as
  *
  *    dx = (xR - xL)/npoint, xleft(i) = xl + i*dx, xright(i) = xleft(i) + dx
- *  
+ *
  *  's' = stretched grid; solve
  *
  *          dx*( 1 + r + r^2 + r^3 + ... r^(N-1)) = xR - xL
@@ -377,10 +377,10 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
  *  'l+' = logarithmic grid, mesh size increases with x; it is defined as
  *
  *
- *               x + |xL| - xL 
+ *               x + |xL| - xL
  *      y = Log[ ------------- ] , with uniform spacing  y(i+1/2) - y(i-1/2) = dy
  *                  |xL|
- *  
+ *
  *      dy    = (yR - yL)/N  and dx(i) becomes
  *      dx(i) = (x(i-) + fabs(xL) - xL)*(10^dy - 1.0);
  *
@@ -389,13 +389,13 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
  *  'l-' = logarithmic grid, mesh size decreases with x; it is defined as
  *
  *
- *               xR + |xL| - x 
+ *               xR + |xL| - x
  *      y = Log[ -------------- ] , with uniform spacing  y(i+1/2) - y(i-1/2) = dy
  *                    |xL|
  *
- *      dy    = -(yR - yL)/N   
+ *      dy    = -(yR - yL)/N
  *      dx(i) = (x(i-) - fabs(xL) - xR)*(10^dy - 1.0);
- *     
+ *
  *********************************************************************** */
 #define MAX_ITER   50
 {
@@ -414,15 +414,15 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
   nseg = rtime->npatch[idim];
 
 /* ---------------------------------------------------
-       for each patch, find the leftmost and 
-       rightmost indexes ilft and irgt          
+       for each patch, find the leftmost and
+       rightmost indexes ilft and irgt
    --------------------------------------------------- */
 
   i_patch_lft[1] = 1;
   i_patch_rgt[1] = rtime->patch_npoint[idim][1];
   x_patch_lft[1] = rtime->patch_left_node[idim][1];
   x_patch_rgt[1] = rtime->patch_left_node[idim][2];
- 
+
   for (iseg = 2; iseg <= nseg; iseg++) {
     i_patch_lft[iseg] = i_patch_rgt[iseg - 1] + 1;
     i_patch_rgt[iseg] = i_patch_lft[iseg] + rtime->patch_npoint[idim][iseg] - 1;
@@ -434,7 +434,7 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
   done_with_segment[nseg + 1] = 0;
 
   for (iseg = 1; iseg <= nseg; iseg++) {
-   
+
     done_with_segment[iseg] = 0;
     xL     = x_patch_lft[iseg];
     xR     = x_patch_rgt[iseg];
@@ -456,7 +456,7 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
 
     } else if ( rtime->patch_type[idim][iseg] == LOGARITHMIC_INC_GRID ||
                 rtime->patch_type[idim][iseg] == LOGARITHMIC_DEC_GRID) {
- 
+
       log_inc = rtime->patch_type[idim][iseg] == LOGARITHMIC_INC_GRID;
       log_dec = rtime->patch_type[idim][iseg] == LOGARITHMIC_DEC_GRID;
 
@@ -475,27 +475,27 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
         }
         xrgt[i]     = xlft[i] + dx[i];
         xlft[i + 1] = xrgt[i];
-      }        
+      }
       done_with_segment[iseg] = 1;
-   
+
     } else {
       continue;
     }
   }
 
   all_segments_done = 1;
-  for (iseg = 1; iseg <= nseg; iseg++) { 
+  for (iseg = 1; iseg <= nseg; iseg++) {
     all_segments_done = all_segments_done && done_with_segment[iseg];
   }
 
 /* --------------------------------------------------------------
-                  now do stretched grids ...      
+                  now do stretched grids ...
    -------------------------------------------------------------- */
-        
+
   while (!all_segments_done) {  /* loop until all segments are processed... */
 
 /* ---------------------------------------------------
-    scan the entire grid and process only those 
+    scan the entire grid and process only those
     segments close to a segment that is already done
     (i.e. done_with_segment[iseg] = 1)
    --------------------------------------------------- */
@@ -509,8 +509,8 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
       npoint = rtime->patch_npoint[idim][iseg];
 
 /*  -----------------------------------------------------
-     now find whether the segment to right (iseg+1) or 
-     to the left (iseg-1) is already done;     
+     now find whether the segment to right (iseg+1) or
+     to the left (iseg-1) is already done;
     -----------------------------------------------------  */
 
       next_seg_is = 0;
@@ -518,30 +518,30 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
       if (done_with_segment[iseg - 1]) next_seg_is = iseg - 1;
 
 /*  -----------------------------------------------------
-     if none of them is done, skip this segment and 
+     if none of them is done, skip this segment and
       move forward,  otherwise process segment iseg,
-      otherwise process the grid    
+      otherwise process the grid
     -----------------------------------------------------  */
 
-      if (rtime->patch_type[idim][iseg] == STRETCHED_GRID && 
+      if (rtime->patch_type[idim][iseg] == STRETCHED_GRID &&
           next_seg_is != 0 && !done_with_segment[iseg]) {
 
 /*  ----------------------------------------------------------
      nstart is:
-     
+
       *  the rightmost point if the next grid is done,
          i.e., next_seg_is > iseg;
       *  the leftmost  point if the previous grid is done,
-         i.e., next_seg_is < iseg;  
+         i.e., next_seg_is < iseg;
     ----------------------------------------------------------  */
 
         nstart = (next_seg_is > iseg ? iR:iL);
-        
+
         alpha  = 1.01;           /* provide a first guess */
 
 /*  --------------------------------------------------------------------
-     par[0] : contains the number of points  
-     par[1] : Ratio L/dx : the first dx is the one that belongs to the 
+     par[0] : contains the number of points
+     par[1] : Ratio L/dx : the first dx is the one that belongs to the
               previous (iseg>1) or next (iseg = 1) uniform segment
     --------------------------------------------------------------------- */
 
@@ -551,7 +551,7 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
           par[1] = (xR - xL)/dx[nstart + 1];
         else
           par[1] = (xR - xL)/dx[nstart - 1];
-  
+
 /*  ----  Use NEWTON algorithm to find the stretch factor  ----  */
 
         for (n = 0; n <= MAX_ITER; n++) {
@@ -582,7 +582,7 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
           for (i = nstart; i >= iL; i--) {
             dx[i]       = pow (alpha, nstart - i + 1)*dx[nstart + 1];
             xlft[i]     = xrgt[i] - dx[i];
-            xrgt[i - 1] = xlft[i]; 
+            xrgt[i - 1] = xlft[i];
           }
         } else {
           xlft[nstart] = xL;
@@ -599,7 +599,7 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
 /*  ----  check whether there are other segments to process  ----  */
 
         all_segments_done = 1;
-        for (i = 1; i <= nseg; i++) 
+        for (i = 1; i <= nseg; i++)
           all_segments_done = all_segments_done && done_with_segment[i];
 
 /*  ----  exit from  segment loop (iseg) and rescan the grid from the beginning  ----   */
@@ -613,7 +613,7 @@ void MakeGrid (int idim, Runtime *rtime, double *xlft, double *xrgt, double *dx)
 
 /* ############################################################## */
 void stretch_fun (double x, double *par, double *f, double *dfdx)
-/* 
+/*
  #
  #
  #

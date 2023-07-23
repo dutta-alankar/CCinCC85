@@ -310,7 +310,7 @@ void Analysis (const Data *d, Grid *grid)
   double dV, distance, rByrInj, rho_wind, prs_wind, T_wind, T_gas;
   int cold_indx;
   int cloud_indx;
-  
+
   int spread_indx = (int)(sizeof(rho_cut) / sizeof(rho_cut[0])) - 1;
   double cloud_min = 2*grid->xend_glob[IDIR], cloud_max = 0.5*grid->xbeg_glob[IDIR];
   double cloud_spread;

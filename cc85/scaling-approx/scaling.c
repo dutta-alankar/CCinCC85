@@ -22,7 +22,7 @@ void ApplyWindScaling (const Data *d, double dt, Grid *grid, double scale)
  * \param [in]     double* scale factors
  *
  *********************************************************************** */
-{  
+{
   int i, j, k;
   int iend = grid->lend[IDIR] + grid->nghost[IDIR];
   int jend = grid->lend[JDIR] + grid->nghost[JDIR];
@@ -59,7 +59,7 @@ void ApplyWindScaling (const Data *d, double dt, Grid *grid, double scale)
   }
   SetGeometry(grid);
 
-  TOT_LOOP(k,j,i){    
+  TOT_LOOP(k,j,i){
     d->Vc[RHO][k][j][i]  *= pow(scale, cc85_exp[0]);
     d->Vc[PRS][k][j][i]  *= pow(scale, cc85_exp[1]);
 
@@ -103,7 +103,7 @@ int store_or_save_cloud_pos(double position, double velocity, int save) {
     cloud_vel = 0.;
     #else
     cloud_vel = 1.0;
-    #endif  
+    #endif
     return 0;
   }
   if (save == 0 && g_stepNumber>0){

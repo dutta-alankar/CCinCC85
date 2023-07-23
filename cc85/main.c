@@ -865,7 +865,7 @@ void MoveTrack (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_line){
   double mass_trc   = 0., mass_trc_all = 0.;
   double trc_min = 2.0*grid->xend_glob[IDIR];
   double trc_max = 0.5*grid->xbeg_glob[IDIR];
-    
+
   double chi         = g_inputParam[CHI];
   double mach        = g_inputParam[MACH];
   double rIniByrInj  = CC85pos(mach);
@@ -909,7 +909,7 @@ void MoveTrack (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_line){
 
   g_dist_lab = (g_stepNumber==0)?g_inputParam[RINI]:xc_all;  // wind centric position of the cloud
   g_trctrack = trc_min;
-  
+
   g_trcmin = trc_min;
   g_trcmax = trc_max;
 

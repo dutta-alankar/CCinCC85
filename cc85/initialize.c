@@ -315,7 +315,7 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
    ----------------------------------------------------- */
 
   nghost = GetNghost();
-  
+
   for (count=0; count<3; count++) g_procs[count] = procs[count];
   SetGrid (runtime, procs, grid);
   nprocs = 1;

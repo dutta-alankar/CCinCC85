@@ -82,7 +82,7 @@ void InitDomain (Data *d, Grid *grid)
 
   g_smallDensity  = (nmin*((CONST_mp*mu)/UNIT_DENSITY));
   g_smallPressure = (nmin*Tcutoff*CONST_kB)/(UNIT_DENSITY*pow(UNIT_VELOCITY,2));
-  
+
   /* Write the data files needed for the simulation if it is non-existent, corrupted or empty */
   FILE *fp;
   /* create the CC85 steady profile for the given set of parameters in python */
@@ -101,7 +101,7 @@ void InitDomain (Data *d, Grid *grid)
     print("CC85 wind data absent!\n");
     QUIT_PLUTO(1);
   }
-  
+
   #if COOLING != NO
   /* create cooling table if not found using Cloudy */
   char CoolingDataFile[256];
@@ -124,7 +124,7 @@ void InitDomain (Data *d, Grid *grid)
   double rIni        = g_inputParam[RINI]; // Enter cloud position in Rcl
   double chi         = g_inputParam[CHI];
   double mach        = g_inputParam[MACH];
-  
+
   double rIniByrInj  = CC85pos(mach); // Position wrt wind
 
   g_dist_lab   = rIni; // Seed cloud position in pc wrt wind center
@@ -517,7 +517,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   double scale = g_dist_lab/rIni;
   double cc85_exp[5] = {-2., -2.0*g_gamma, 0., -1., -1.};
   #endif
-  
+
   /* set steady wid profile at the boundary */
   /*
   if (side == X1_BEG) {
@@ -525,7 +525,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
     BOX_LOOP(box,k,j,i) { /* -- Loop over boundary zones -- *//*
       double rByrInj  = (g_dist_lab/rIni)*rIniByrInj;
       double vel      = CC85vel(rByrInj)/CC85vel(rIniByrInj)
-      
+
       d->Vc[RHO][k][j][i]   = 1.;
       d->Vc[PRS][k][j][i]   = 1./(g_gamma*mach*mach);
       d->Vc[VX1][k][j][i]   = vel;

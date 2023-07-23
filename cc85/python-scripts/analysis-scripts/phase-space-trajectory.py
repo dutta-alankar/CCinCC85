@@ -120,7 +120,7 @@ def wind_condition(tcoolmbytcc = 0.10):
     tcool_mix = (1/(gamma-1)) * kB*Tcl/(nw_cloud_pos*LAMBDA(np.sqrt(Tcl*Tw_cloud_pos))) * ((mu*Xp)**(-2))
     texp  = analysis[:,1]*UNIT_LENGTH/vw_cloud_pos
 
-    Rcl = Rcl*( analysis[:,14]*((Tw_cloud_pos/(chi*Tcl))**(-1)) * ((nw_cloud_pos/(rhowind_ini/(mu*mp)))**(-1)) )**(1./3) 
+    Rcl = Rcl*( analysis[:,14]*((Tw_cloud_pos/(chi*Tcl))**(-1)) * ((nw_cloud_pos/(rhowind_ini/(mu*mp)))**(-1)) )**(1./3)
     tcc = np.sqrt(Tw_cloud_pos/Tcl) * Rcl * pc / np.abs(analysis[:,2]*UNIT_VELOCITY-vw_cloud_pos)
     tsccl = Rcl*pc/np.sqrt(gamma*kB*Tcl/(mu*mp))
 
@@ -182,7 +182,7 @@ def make_plot(tcoolmbytcc = 0.10):
     t_factor_x, t_factor_y, time = wind_condition(tcoolmbytcc)
     points = np.array([t_factor_x, t_factor_y]).T.reshape(-1, 1, 2)
     segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        
+
     lc = LineCollection(segments, cmap='viridis', norm=norm)
     # Set the values used for colormapping
     lc.set_array(time)

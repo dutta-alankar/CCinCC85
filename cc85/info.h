@@ -24,7 +24,7 @@ void write_info (char* filename) {
   fprintf (fp,"\tdimensioality: %d\n", DIMENSIONS);
 
   fprintf (fp,"parameters:\n");
-  fprintf (fp,"\tchi: %.3f\n", g_inputParam[CHI]); 
+  fprintf (fp,"\tchi: %.3f\n", g_inputParam[CHI]);
   fprintf (fp,"\tMach_ini: %.3f\n", g_inputParam[MACH]);
   fprintf (fp,"\tcoolmBytcc: %.3f\n", 0.8);
   fprintf (fp,"\tRinibyRcl: %.3f\n", g_inputParam[RINI]);
@@ -35,7 +35,7 @@ void write_info (char* filename) {
   fprintf (fp,"\tEdot : %.3e\n", 3.003538777293662e+41);
   fprintf (fp,"\tMdot : %.3e\n", 2.001792023447753);
   fprintf (fp,"\tRinj : %.3f\n", 200.02349561612164);
-  fprintf (fp,"\tRini : %.3f\n", 214.15203720016763); 
+  fprintf (fp,"\tRini : %.3f\n", 214.15203720016763);
   fprintf (fp,"\tRcl  : %.3f\n", 0.7575668845784254);
 
   fprintf (fp,"code units:\n");

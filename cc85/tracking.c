@@ -26,8 +26,8 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
 
   static double track_pos;
   double delta = 0.;
-  
-  // XXX: track_pos position of cloud at the last tracking step  
+
+  // XXX: track_pos position of cloud at the last tracking step
   if (g_stepNumber==0)
     track_pos = rIni;
   else
@@ -47,10 +47,10 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
     trc = tmp;
     #endif
     printLog("Initial: step %d; Track_pos=%f Pos_now=%f, trc_min=%f, left_dom=%f\n", g_stepNumber, track_pos, g_dist_lab, g_trctrack, grid->xbeg_glob[IDIR]);
-    printLog("Initial: step %d; t=%f; M_trc = %f\n", g_stepNumber, g_time, trc); 
+    printLog("Initial: step %d; t=%f; M_trc = %f\n", g_stepNumber, g_time, trc);
   }
   */
-  
+
   static int once = 0;
   if(cmd_line->h5restart == YES && once == 0){
     once = 1;
@@ -91,7 +91,7 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
     delta = g_tracking;
     track_pos = g_dist_lab - delta;
   }
-  
+
   if (g_stepNumber == 0) return;
 
   double *r   = grid->x[IDIR];
@@ -102,7 +102,7 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
   double *dth  = grid->dx[JDIR];
   double *dphi = grid->dx[KDIR];
 
-  if ( fabs(g_trctrack - grid->xbeg_glob[IDIR]) < g_inputParam[BUFFER_TRACK] ) { // edge is BUFFER_TRACK * Rcl from boundary 
+  if ( fabs(g_trctrack - grid->xbeg_glob[IDIR]) < g_inputParam[BUFFER_TRACK] ) { // edge is BUFFER_TRACK * Rcl from boundary
     track_pos = g_dist_lab;
     return;
   }
@@ -128,7 +128,7 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
   //else
   //   shift_cells =  (int)ceil(delta/dr[IBEG]) ;
   int shift_thres = MIN(1,grid->nghost[IDIR]-g_ghost_true); //flooring creates a small overshoot error in fixing cloud position
-  
+
   if (fabs(shift_cells)<shift_thres) return;
   #if VERBOSE != NO
   else
@@ -145,16 +145,16 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
   MPI_Allreduce (&trc, &tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   trc = tmp;
   #endif
-  printLog("Before Tracking: step %d; t=%f; M_trc = %f\n", g_stepNumber, g_time, trc); 
+  printLog("Before Tracking: step %d; t=%f; M_trc = %f\n", g_stepNumber, g_time, trc);
   */
   // printLog("step:%d; Applying cloud tracking: cells_shift=%d; shift_thres=%d\n",g_stepNumber, shift_cells, shift_thres);
   double shift_val = shift_cells*dr[IBEG]; //uniform grid assumption
   track_pos += shift_val; //this auto corrects the small overshoot in the next step as delta is neg in next step
 
   //printLog("Shift val = %lf\tTotal Shift val = %lf\n", shift_val, g_tot_shift_val);
-  g_tot_shift_val = g_tot_shift_val + shift_val; 
+  g_tot_shift_val = g_tot_shift_val + shift_val;
   /*
-  for (ip = 1; ip <= runtime->npatch[IDIR]+1; ip++) 
+  for (ip = 1; ip <= runtime->npatch[IDIR]+1; ip++)
     printLog("Before Step %d: runtime->patch_left_node = %f, shift_val=%f\n", g_stepNumber, runtime->patch_left_node[IDIR][ip], shift_val);
   */
 
@@ -163,13 +163,13 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
 
   /*
   MPI_Barrier (MPI_COMM_WORLD);
-  for (ip = 1; ip <= runtime->npatch[IDIR]+1; ip++) 
+  for (ip = 1; ip <= runtime->npatch[IDIR]+1; ip++)
     printLog("After Step %d: runtime->patch_left_node = %f\n", g_stepNumber, runtime->patch_left_node[IDIR][ip]);
-  
-  for (ip = 1; ip <= runtime->npatch[JDIR]+1; ip++) 
+
+  for (ip = 1; ip <= runtime->npatch[JDIR]+1; ip++)
     printLog("After Step %d: runtime->patch_left_node = %f\n", g_stepNumber, runtime->patch_left_node[JDIR][ip]);
 
-  for (ip = 1; ip <= runtime->npatch[KDIR]+1; ip++) 
+  for (ip = 1; ip <= runtime->npatch[KDIR]+1; ip++)
     printLog("After Step %d: runtime->patch_left_node = %f\n", g_stepNumber, runtime->patch_left_node[KDIR][ip]);
   */
   SetGrid(runtime, g_procs, grid);
@@ -235,10 +235,10 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
   int par_dim[3] = {0, 0, 0};
   DIM_EXPAND(par_dim[0] = grid->nproc[IDIR] > 1;  ,
            par_dim[1] = grid->nproc[JDIR] > 1;  ,
-           par_dim[2] = grid->nproc[KDIR] > 1;)           
+           par_dim[2] = grid->nproc[KDIR] > 1;)
 
   MPI_Barrier (MPI_COMM_WORLD);
-  NVAR_LOOP(nv) AL_Exchange_dim ((char *)d->Vc[nv][0][0], par_dim, SZ);  
+  NVAR_LOOP(nv) AL_Exchange_dim ((char *)d->Vc[nv][0][0], par_dim, SZ);
   MPI_Barrier (MPI_COMM_WORLD);
   */
   RBox dom_box;
@@ -253,7 +253,7 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
   */
   MPI_Barrier (MPI_COMM_WORLD);
   #endif
-  
+
   #if RING_AVERAGE > 1
   RingAverageSize(grid);
   #endif
@@ -296,7 +296,7 @@ void ApplyTracking (const Data *d, Grid *grid, Runtime *runtime, cmdLine *cmd_li
   MPI_Allreduce (&trc, &tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   trc = tmp;
   #endif
-  printLog("After Tracking: step %d; t=%f; M_trc = %f\n", g_stepNumber, g_time, trc); 
+  printLog("After Tracking: step %d; t=%f; M_trc = %f\n", g_stepNumber, g_time, trc);
   */
   #if PARTICLES != NO
   particleNode *curr, *next;
