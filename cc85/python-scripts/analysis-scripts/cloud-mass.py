@@ -49,16 +49,16 @@ thresholds = [1.0, 0.5, 0.1, 0.01]
 
 plt.figure(figsize=(13,10))
 for threshold in thresholds:
-    with plt.style.context('dark_background'):
-        data = np.loadtxt(f"{location_cc85}{threshold:.2f}/analysis.dat")
-        p = plt.semilogy(data[:,0]/np.sqrt(chi), data[:,14], label=r"$t_{cool,mix}/t_{cc} = %.2f$"%threshold)
-        data = np.loadtxt(f"{location_vanl}{threshold:.2f}/analysis.dat")
-        plt.semilogy(data[:,0]/np.sqrt(chi), data[:,14], linestyle="--", color=p[-1].get_color())
+    # with plt.style.context('dark_background'):
+    data = np.loadtxt(f"{location_cc85}{threshold:.2f}/analysis.dat")
+    p = plt.semilogy(data[:,0]/np.sqrt(chi), data[:,14], label=r"$t_{cool,mix}/t_{cc} = %.2f$"%threshold)
+    data = np.loadtxt(f"{location_vanl}{threshold:.2f}/analysis.dat")
+    plt.semilogy(data[:,0]/np.sqrt(chi), data[:,14], linestyle="--", color=p[-1].get_color())
 
 # plt.legend(loc="best", fancybox=True)
 plt.xlim(xmin=0, xmax=40)
 plt.ylim(ymin=1e-2, ymax=35)
 plt.ylabel(r"Cloud mass/Initial mass")
 plt.xlabel(r"$t/t_{cc}$")
-plt.savefig(f"{out_dir}/cloud_{len(thresholds)}.png", transparent=True)
+plt.savefig(f"{out_dir}/cloud_{len(thresholds)}.png", transparent=False)
 plt.show()

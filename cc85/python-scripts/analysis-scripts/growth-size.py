@@ -93,9 +93,10 @@ chi = Tempwind/Tcl
 # Rgo  = 2 * (Tcl/1e4)**(5/2)*machwind/(((prswind/kB)/1e3)*(LAMBDA(np.sqrt(chi)*Tcl)/10**-21.4) ) *(chi/100) * (alpha**-1) # pc
 Rgo  = 10.378 * (Tcl/1e4)**(5/2)*machwind/(((prswind/kB)/1e3)*(LAMBDA(np.sqrt(chi)*Tcl)/10**-21.29) ) * (chi/100) * (alpha**-1) # pc
 
-Rcl_min = Rgo # pc from vanilla CC
-Rcl_max = rbyrInj*Rinj/200 # pc not yet known
-Rcl_dest = rbyrInj*Rinj/100 # pc not yet known
+cutoff = 6.0
+Rcl_min = Rgo/cutoff # pc from vanilla CC
+Rcl_max = rbyrInj*Rinj/700 # pc not yet known
+Rcl_dest = rbyrInj*Rinj/200 # pc not yet known
 
 ## Plot Styling
 matplotlib.rcParams["xtick.direction"] = "in"
@@ -150,11 +151,11 @@ secay = plt.gca().secondary_yaxis('right',
 secay.set_ylabel(r"$\chi$")
 '''
 # Simulation params
-Mach_ini = 1.385
+Mach_ini = 1.496
 Rini = relpos_mach(Mach_ini) * Rinj # pc
-RinibyRcl   = np.array([23.382, 31.176, 77.941, 116.911, 202.646, 311.763, 974.260])
-tcoolmBytcc = np.array([0.06,   0.08,   0.20,   0.30,    0.52,    0.80,    2.5    ])
-status      =          ['P',    'D',    'P',    'D',     'G',     'P',     'D']
+RinibyRcl   = np.array([21.201, 28.268, 35.335, 70.671, 106.006, 176.677, 282.684, 883.387, 1766.774])
+tcoolmBytcc = np.array([0.06,   0.08,   0.10,   0.20,   0.30,    0.50,    0.80,    2.5,     5.0])
+status      =          ['P',    'D',    'D',    'D',    'D',     'D',     'D',     'G',     'G']
 Rcl = Rini/RinibyRcl # pc
 
 cond = np.logical_and(rbyrInj>=1.0, Rcl_max>=Rcl_min)
@@ -169,7 +170,7 @@ for i, txt in enumerate(tcoolmBytcc):
                        size=18, weight="bold",
                        color = color)
 plt.legend(loc="best")
-plt.xlabel(r"$r/r_{inj}$")
+plt.xlabel(r"$r_{ini}/r_{inj}$")
 plt.ylabel(r"Growing cloud size (pc)")
 plt.title(r"$(\dot{E}, \dot{M}, r_{inj})$ = (%.2e, %.1f, %.1f)"%(Edot, Mdot, Rinj))
 plt.savefig("growth-size.png")

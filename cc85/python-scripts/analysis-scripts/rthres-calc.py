@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.interpolate import interp1d
 
-## useful constants
 yr     = 365*24*60**2
 Myr    = 1e6*yr
 pi     = np.pi
@@ -32,25 +31,13 @@ muHp   = 1./Xp
 mue    = 2./(1+Xp)
 mui    = 1./(1/mu-1/mue)
 
-# Program starts here
-gamma = 5/3
-
-LAMBDA = np.loadtxt('../../cooltable.dat')
-LAMBDA = interp1d(LAMBDA[:,0], LAMBDA[:,1], fill_value='extrapolate')
-
+cool = np.loadtxt("../../cooltable.dat")
+gamma = 5./3
+PiniBkB = 1.0e+03
 Tcl = 1.0e+04
 chi = 100
-Mach = 1.0
-P_by_kB = 1.0e+03
+mach = 1.0
+LAMBDA = interp1d(cool[:,0], cool[:,1])
 
-ncl = P_by_kB/Tcl
-Lambda_m = LAMBDA(np.sqrt(chi)*Tcl)
-
-Rgo = (Mach/(gamma-1)) * np.sqrt(gamma*kB*Tcl / (mu*mp)) * (((P_by_kB*kB) * chi) / ( (Xp*mu*ncl)**2 * Lambda_m))
-Rgo /= pc
-print("Rgo = %f pc"%Rgo)
-print("Lambda_m ( %.1e K) = 10**%f cgs"%(np.sqrt(chi)*Tcl,np.log10(Lambda_m)))
-
-alpha = 1.0
-expr = (Tcl/1e4)**(5/2)*Mach/(((P_by_kB)/1e3)*(LAMBDA(np.sqrt(chi)*Tcl)/10**-21.29) ) * (chi/100) * (alpha**-1)
-print("test = %f"%expr)
+Rthres = (kB*Tcl**2/(gamma-1))/PiniBkB*chi*mach/(mu*Xp)**2*np.sqrt(gamma*kB*Tcl/(mu*mp))/pc/LAMBDA(np.sqrt(chi)*Tcl)
+print("R_thres = %.3f pc"%Rthres)

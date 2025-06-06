@@ -230,7 +230,13 @@ cython_debug/
 *.log
 *.err
 *.png
+*.svg
+*.jpg
+*.gz
 *.dat
+*.npy
+*.pdf
+*.pickle
 PLUTO/
 pluto
 

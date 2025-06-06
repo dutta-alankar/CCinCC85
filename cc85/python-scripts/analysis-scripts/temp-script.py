@@ -38,19 +38,11 @@ gamma = 5/3
 LAMBDA = np.loadtxt('../../cooltable.dat')
 LAMBDA = interp1d(LAMBDA[:,0], LAMBDA[:,1], fill_value='extrapolate')
 
-Tcl = 1.0e+04
+UNIT_DENSITY  = 4.1444e-25
+UNIT_LENGTH   = 3.2156e+18
+UNIT_VELOCITY = 4.1627e+07
+
+Tcl = 4.0e+04
 chi = 100
-Mach = 1.0
-P_by_kB = 1.0e+03
-
-ncl = P_by_kB/Tcl
-Lambda_m = LAMBDA(np.sqrt(chi)*Tcl)
-
-Rgo = (Mach/(gamma-1)) * np.sqrt(gamma*kB*Tcl / (mu*mp)) * (((P_by_kB*kB) * chi) / ( (Xp*mu*ncl)**2 * Lambda_m))
-Rgo /= pc
-print("Rgo = %f pc"%Rgo)
-print("Lambda_m ( %.1e K) = 10**%f cgs"%(np.sqrt(chi)*Tcl,np.log10(Lambda_m)))
-
-alpha = 1.0
-expr = (Tcl/1e4)**(5/2)*Mach/(((P_by_kB)/1e3)*(LAMBDA(np.sqrt(chi)*Tcl)/10**-21.29) ) * (chi/100) * (alpha**-1)
-print("test = %f"%expr)
+tcoolmBytcc = (1./(gamma-1)) * (kB*Tcl * mu*mp) / (np.sqrt(chi)*(mu*Xp)**2 * LAMBDA(np.sqrt(chi)*Tcl)) * (UNIT_VELOCITY/(UNIT_DENSITY*UNIT_LENGTH))
+print(tcoolmBytcc)

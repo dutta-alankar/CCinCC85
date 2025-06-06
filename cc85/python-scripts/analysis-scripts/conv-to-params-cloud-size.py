@@ -8,6 +8,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import matplotlib
+import sys
 
 ## useful constants
 yr     = 365*24*60**2
@@ -58,13 +59,19 @@ relpos = interp1d(wind[:,2]/wind[:,1], rnorm) #inverting the Temperature relatio
 
 LAMBDA = np.loadtxt('../../cooltable.dat')
 LAMBDA = interp1d(LAMBDA[:,0], LAMBDA[:,1], fill_value='extrapolate')
-
+'''
+# Param set 1
 Edot = 3.00e+41  # erg/s
 Mdot = 2.00      # MSun/yr
 Rinj = 200       # pc
+'''
+# Param set 2
+Edot = 1.00e+42  # erg/s
+Mdot = 5.00      # MSun/yr
+Rinj = 300       # pc
 
-Tcl         = 4.0e+4
-tcoolmbytcc = 0.80
+Tcl         = 4.0e+04 # K
+tcoolmbytcc = float(sys.argv[1])
 chi = 100 # all chi maynot be possible for a wind as it is too cold due to adiabatic expansion
 
 Twind_ini = chi*Tcl
@@ -106,7 +113,10 @@ print(f"R_go  = {Rgo:.2f} pc")
 print(f"Mdot = {Mdot:.2e} MSun/yr")
 print(f"Edot = {Edot:.2e} erg/s")
 print(f"R_inj = {Rinj:.1f} pc")
+print(f"(R_ini-2R_cl - R_inj)/R_cl = {((Rini-2*Rcl-Rinj)/Rcl):.1f} (thres 1.0)")
+print(f"(R_ini - R_inj)/R_cl = {((Rini-Rinj)/Rcl):.1f} (thres 2.0)")
 
+'''
 ## Plot Styling
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
@@ -181,3 +191,4 @@ plt.vlines(x=0.3, ymin=np.min(RinibyRcl), ymax=np.max(RinibyRcl), color="black",
 plt.hlines(y=100, xmin=np.min(tcoolmbytcc), xmax=np.max(tcoolmbytcc), color="black", linestyle=":")
 plt.savefig("cloud-size.png")
 plt.close()
+'''
