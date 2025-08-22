@@ -114,6 +114,81 @@ root = "../../output"
 root_vanl = "../../output-vanl"
 till = 100 # tcc
 
+print("time-velocity")
+for select in range(len(tcool_mix_B_tcc)):
+    label = f"c{chi:d},m{mach:.3f},T4e4,t{tcool_mix_B_tcc[select]:.2f},r{rini_B_rcl[select]:.3f}"
+    directory = f"{root}-{label}"
+    UNIT_LENGTH = float(sp.getoutput(f"cat {directory}/definitions.h | grep UNIT_LENGTH").split()[-1])
+    UNIT_DENSITY = float(sp.getoutput(f"cat {directory}/definitions.h | grep UNIT_DENSITY").split()[-1])
+    UNIT_VELOCITY = float(sp.getoutput(f"cat {directory}/definitions.h | grep UNIT_VELOCITY").split()[-1])
+    distance_ini = float(sp.getoutput(f"cat {directory}/pluto.ini | grep RINI").split()[-1])
+
+    if tcool_mix_B_tcc[select]==1.4 or tcool_mix_B_tcc[select]==1.0:
+        continue
+    elif tcool_mix_B_tcc[select]==0.1:
+        till = 42
+    elif tcool_mix_B_tcc[select]==0.2:
+        till = 62
+    else:
+        till = 100
+    with open(f"./paraview-cloud-analysis_data-dump/{label}.pickle", "rb") as handle:
+        cloud_data = pickle.load(handle)
+    # t/tcc    Area    Volume    Mass   delta_v
+    
+    area_data = []
+    for key in list(cloud_data.keys()):
+        cloud_velocity_r = np.sum(cloud_data[key]['cloud_density']*cloud_data[key]['cloud_volume_elems']*cloud_data[key]['cloud_velocity_r'])/np.sum(cloud_data[key]['cloud_density']*cloud_data[key]['cloud_volume_elems'])
+        cloud_com = np.sum(cloud_data[key]['cloud_density']*cloud_data[key]['cloud_volume_elems']*cloud_data[key]['cloud_distance'])/np.sum(cloud_data[key]['cloud_density']*cloud_data[key]['cloud_volume_elems'])
+        wind_vel = CC85windvel(cloud_com/distance_ini * diniBdinj)/CC85windvel(diniBdinj) # code units
+        delta_v = (wind_vel - cloud_velocity_r)/wind_vel 
+        area_data.append([float(key), 
+                          cloud_data[key]['cloud_tot_surface_area'], 
+                          cloud_data[key]['cloud_tot_vol'],
+                          cloud_data[key]['cloud_tot_mass'],
+                          delta_v,
+                          ])
+    area_data = np.array(area_data)
+    
+    line, = plt.plot(area_data[:till+1,0], area_data[:till+1,4], label=f'{tcool_mix_B_tcc[select]:.2f}', zorder=100+int(8%(select+1)))
+    '''
+    # mark entrained point by *
+    where = interp1d(area_data[:till+1,4], area_data[:till+1,2]/area_data[0,2], fill_value="extrapolate")(0.2)
+    if where<=np.max(area_data[:till+1,2]/area_data[0,2]):
+        plt.scatter(where, 
+                    interp1d(area_data[:till+1,2]/area_data[0,2], area_data[:till+1,1]/area_data[0,1], fill_value="extrapolate")(where), 
+                    s=180, marker="*", color=line.get_color(), zorder=100+int(8%(select+1)))
+    # print("vel", tcool_mix_B_tcc[select], where)
+    '''
+    # mark mass doubling point by diamond
+    where = interp1d(area_data[:till+1,3]/area_data[0,3], area_data[:till+1,0], fill_value="extrapolate")(2)
+    if where<=np.max(area_data[:till+1,0]):
+        plt.scatter(where, 
+                    interp1d(area_data[:till+1,0], area_data[:till+1,4], fill_value="extrapolate")(where), 
+                    s=120, marker="D", color=line.get_color(), zorder=100+int(8%(select+1)))
+    '''
+    if tcool_mix_B_tcc[select] == 0.2:
+        index = 2/3.
+        K1, K2 = 6./10.**index, 80./10.**index
+        plt.fill_between(area_data[:till+1,2]/area_data[0,2], K1*(area_data[:till+1,2]/area_data[0,2])**index, K2*(area_data[:till+1,2]/area_data[0,2])**index, 
+                         color="lemonchiffon", alpha=0.8, zorder=-100)
+        fdim = 0.5
+        index = (2 + fdim)/3
+        K1, K2 = 10.5/10.**index, 30./10.**index
+        plt.fill_between(area_data[:till+1,2]/area_data[0,2], K1*(area_data[:till+1,2]/area_data[0,2])**index, K2*(area_data[:till+1,2]/area_data[0,2])**index, 
+                         color="paleturquoise", alpha=0.6, zorder=-100)
+    '''
+
+plt.legend(loc="best", title=r"$t_{\rm cool, mix}/t_{\rm cc}|_{\rm ini}$", ncols=3,
+            prop = { "size": 20 }, title_fontsize=22, fancybox=True)
+plt.ylim(ymin=0.0, ymax=1.10)
+plt.xlim(xmin=0., xmax = till)
+plt.xlabel(r"time [$t_{\rm cc, ini}$]")
+plt.ylabel(r"$1-\frac{v_{\rm cl, com}}{v_{\rm wind}(d_{\rm cl})}$ ($T<8\times 10^4$ K)")
+plt.savefig(f"vel_diff_time{'-dark' if dark else ''}.svg", bbox_inches='tight', transparent=True)
+# plt.show()
+plt.close()
+print("Done!")
+
 print("area-time")
 for select in range(len(tcool_mix_B_tcc)):
     label = f"c{chi:d},m{mach:.3f},T4e4,t{tcool_mix_B_tcc[select]:.2f},r{rini_B_rcl[select]:.3f}"
@@ -490,11 +565,9 @@ plt.savefig(f"mass-cold+dense-w_dist-trunc_time{'-dark' if dark else ''}.svg", t
 plt.close()
 print("Done!")
 
-"""
-print("Absolute mass")
+print("time-Absolute mass: panel 1")
 fig = plt.figure(figsize=(28,10))
 axs = fig.subplots(1,2)
-
 for select in range(len(tcool_mix_B_tcc)):
     label = f"c{chi:d},m{mach:.3f},T4e4,t{tcool_mix_B_tcc[select]:.2f},r{rini_B_rcl[select]:.3f}"
     directory_vanl = f"{root_vanl}-{label}"
@@ -555,7 +628,9 @@ axs[0].set_ylabel(r"$M_{\rm cl}$ ($T<8\times 10^4$ K) [$M_{\odot}$]")
 # plt.savefig(f"mass-cold_to_CGM-trunc_time{'-dark' if dark else ''}.svg", bbox_inches='tight', transparent=True)
 # plt.show()
 # plt.close()
+print("Done!")
 
+print("time-cold_mass: panel 2")
 for select in range(len(tcool_mix_B_tcc)):
     label = f"c{chi:d},m{mach:.3f},T4e4,t{tcool_mix_B_tcc[select]:.2f},r{rini_B_rcl[select]:.3f}"
     directory = f"{root}-{label}"
@@ -607,6 +682,73 @@ plt.savefig(f"mass-cold-trunc_time{'-dark' if dark else ''}.svg", bbox_inches='t
 plt.close()
 print("Done!")
 
+print("time-cold_mass: resolution")
+fig = plt.figure(figsize=(13,10))
+cool_regime = 0.8
+for select in range(len(tcool_mix_B_tcc)):
+    if tcool_mix_B_tcc[select]!=cool_regime:
+        continue
+    line = None
+    for res in [8, 16]:
+        extra = f"-res{res}"
+        label = f"c{chi:d},m{mach:.3f},T4e4,t{tcool_mix_B_tcc[select]:.2f},r{rini_B_rcl[select]:.3f}"
+        directory = f"{root}-{label}"
+        UNIT_LENGTH = float(sp.getoutput(f"cat {directory}/definitions.h | grep UNIT_LENGTH").split()[-1])
+        UNIT_DENSITY = float(sp.getoutput(f"cat {directory}/definitions.h | grep UNIT_DENSITY").split()[-1])
+        UNIT_VELOCITY = float(sp.getoutput(f"cat {directory}/definitions.h | grep UNIT_VELOCITY").split()[-1])
+        distance_ini = float(sp.getoutput(f"cat {directory}/pluto.ini | grep RINI").split()[-1])
+        ndens_w_ini  = UNIT_DENSITY/(mu*mp) # cgs
+        ndens_cl_ini = chi * ndens_w_ini
+        prs_w_ini = ndens_w_ini*chi*Tcl # p/kB
+        v_w_ini = UNIT_VELOCITY # cgs
+
+        if tcool_mix_B_tcc[select]==0.1:
+            till = 42
+        elif tcool_mix_B_tcc[select]==0.2:
+            till = 62
+        elif tcool_mix_B_tcc[select]==0.8:
+            till = 98
+        else:
+            till = 100
+        with open(f"./paraview-cloud-analysis_data-dump{extra}/{label}.pickle", "rb") as handle:
+            cloud_data = pickle.load(handle)
+        mass_data = []
+        for key in list(cloud_data.keys()):
+            cloud_density = cloud_data[key]['cloud_density'] * UNIT_DENSITY # cgs
+            cloud_volume = cloud_data[key]['cloud_volume_elems'] * UNIT_LENGTH**3 # cgs
+
+            cloud_mass = np.sum(cloud_density * cloud_volume)/MSun
+            mass_data.append([float(key), cloud_mass])
+        mass_data = np.array(mass_data)
+
+        # normalize by mass_data[0,1]
+        if line is None:
+            line, = plt.plot(mass_data[:till+1,0], mass_data[:till+1,1]/mass_data[0,1], 
+                            label=r"$R_{\rm cl}/d_{\rm cell}|_{\rm ini}=$"+f"{res}",
+                            linestyle="-" if res==8 else "--")
+        else:
+            plt.plot(mass_data[:till+1,0], mass_data[:till+1,1]/mass_data[0,1], 
+                            label=r"$R_{\rm cl}/d_{\rm cell}|_{\rm ini}=$"+f"{res}",
+                            color=line.get_color(),
+                            linestyle="-" if res==8 else "--")
+        np.savetxt(f"./paraview-cloud-analysis_data-dump{extra}/mass-time-t{cool_regime}-res{res}.txt", 
+                    np.vstack( (mass_data[:till+1,0], mass_data[:till+1,1]/mass_data[0,1]) ).T )
+
+plt.legend(loc="best", title=r"$t_{\rm cool, mix}/t_{\rm cc}|_{\rm ini}=$"+f"{cool_regime:.1f}", ncols=3,
+           prop = { "size": 20 }, title_fontsize=22, fancybox=True)
+# till = 98
+# plt.ylim(ymin=9.0e-01)
+plt.xlim(xmin=0., xmax = till)
+plt.yscale('log')
+plt.xlabel(r"time [$t_{\rm cc,ini}$]")
+plt.ylabel(r"$M_{\rm cl}$ ($T<8\times 10^4$ K) [$M_{\rm cl,ini}$]")
+plt.savefig(f"mass-cold-trunc_time-fid-res-t{cool_regime}{'-dark' if dark else ''}.svg", bbox_inches='tight', transparent=True)
+# plt.show()
+plt.close()
+print("Done!")
+
+"""
+print("time-m_dot")
 for select in range(len(tcool_mix_B_tcc)):
     label = f"c{chi:d},m{mach:.3f},T4e4,t{tcool_mix_B_tcc[select]:.2f},r{rini_B_rcl[select]:.3f}"
     directory = f"{root}-{label}"
@@ -659,6 +801,7 @@ plt.ylabel(r"$\dot{M}_{\rm cl}$ ($T<8\times 10^4$ K) [$M_{\rm cl,ini}/t_{\rm cc,
 plt.savefig(f"mass_dot-cold-trunc_time{'-dark' if dark else ''}.svg", bbox_inches='tight', transparent=True)
 # plt.show()
 plt.close()
+print("Done!")
 """
 
 print("area-volume")
@@ -714,6 +857,11 @@ for select in range(len(tcool_mix_B_tcc)):
         K1, K2 = 6./10.**index, 80./10.**index
         plt.fill_between(area_data[:till+1,2]/area_data[0,2], K1*(area_data[:till+1,2]/area_data[0,2])**index, K2*(area_data[:till+1,2]/area_data[0,2])**index, 
                          color="lemonchiffon", alpha=0.8, zorder=-100)
+        fdim = 0.5
+        index = (2 + fdim)/3
+        K1, K2 = 10.5/10.**index, 30./10.**index
+        plt.fill_between(area_data[:till+1,2]/area_data[0,2], K1*(area_data[:till+1,2]/area_data[0,2])**index, K2*(area_data[:till+1,2]/area_data[0,2])**index, 
+                         color="paleturquoise", alpha=0.6, zorder=-100)
         '''
         K1, K2 = 6./10.**(2/3.), 40./10.**(2/3.)
         plt.fill_between(area_data[:till+1,2]/area_data[0,2], K1*(area_data[:till+1,2]/area_data[0,2])**(2/3.), K2*(area_data[:till+1,2]/area_data[0,2])**(2/3.), 
@@ -784,7 +932,7 @@ for select in range(len(tcool_mix_B_tcc)):
         a_pow = 3*(gamma-1/2.) # 2/3*(23/12) + 4*gamma/3.
         K1, K2 = 80/2**a_pow, 300/2**a_pow
         plt.fill_between(area_data[:till+1,1]/area_data[0,1], K1*(area_data[:till+1,1]/area_data[0,1])**a_pow, K2*(area_data[:till+1,1]/area_data[0,1])**a_pow, 
-                         color="gray", alpha=0.3, zorder=-100)
+                         color="paleturquoise", alpha=0.6, zorder=-100)
     # print(tcool_mix_B_tcc[select], area_data[:till+1,2])
 
     # smooth mass test
@@ -884,9 +1032,13 @@ for select in range(len(tcool_mix_B_tcc)):
         till = 100
     
     if tcool_mix_B_tcc[select] == 0.2:
-        K1, K2 = 5/3, 15/2
+        K1, K2 = 6/2, 28/2
         plt.fill_between(area_data[:till+1,1]/area_data[0,1], K1*(area_data[:till+1,1]/area_data[0,1]), K2*(area_data[:till+1,1]/area_data[0,1]), 
                          color="lemonchiffon", alpha=0.8, zorder=-100)
+        index = 5/3.
+        K1, K2 = 2/2.**index, 7./2.**index
+        plt.fill_between(area_data[:till+1,2]/area_data[0,2], K1*(area_data[:till+1,2]/area_data[0,2])**index, K2*(area_data[:till+1,2]/area_data[0,2])**index, 
+                         color="paleturquoise", alpha=0.6, zorder=-100)
     # print(tcool_mix_B_tcc[select], area_data[:till+1,2])
 
     # smooth mass test
@@ -962,7 +1114,7 @@ for select in range(len(tcool_mix_B_tcc)):
         cloud_mass = cloud_data[key]['cloud_tot_mass']
         cloud_pos_x = np.array(cloud_data[key]['cloud_pos_x'])
         cloud_prl   = cloud_pos_x
-        cloud_len   = np.percentile(cloud_prl, 95) - np.percentile(cloud_prl, 5)
+        cloud_len   = np.percentile(cloud_prl, 60) - np.percentile(cloud_prl, 5)
 
         cloud_com = np.sum(cloud_data[key]['cloud_density']*cloud_data[key]['cloud_volume_elems']*cloud_data[key]['cloud_distance'])/np.sum(cloud_data[key]['cloud_density']*cloud_data[key]['cloud_volume_elems'])
         cloud_mdot = np.sum(-cloud_data[key]['cloud_surface_density']*cloud_data[key]['cloud_tot_surface_area']*cloud_data[key]['cloud_surface_vin_elems'])
@@ -986,7 +1138,7 @@ for select in range(len(tcool_mix_B_tcc)):
         till = 100
     
     if tcool_mix_B_tcc[select] == 0.2:
-        K1, K2 = 20/2, 115/2
+        K1, K2 = 7/2, 40/2
         plt.fill_between(area_data[:till+1,1]/area_data[0,1], K1*(area_data[:till+1,1]/area_data[0,1]), K2*(area_data[:till+1,1]/area_data[0,1]), 
                          color="lemonchiffon", alpha=0.8, zorder=-100)
     
@@ -1132,7 +1284,7 @@ for select in range(len(tcool_mix_B_tcc)):
         m_pow = 23/12
         K0, K1, K2 = 1.71/1.46**m_pow, 2.5/2**m_pow, 10.3/3**m_pow
         plt.fill_between(area_data[:till+1,4]/area_data[0,4], K1*(area_data[:till+1,4]/area_data[0,4])**m_pow, K2*(area_data[:till+1,4]/area_data[0,4])**m_pow, 
-                         color="gray", alpha=0.3, zorder=-100)
+                         color="paleturquoise", alpha=0.6, zorder=-100)
 
 plt.legend(loc="best", title=r"$t_{\rm cool, mix}/t_{\rm cc}|_{\rm ini}$", ncols=3,
             prop = { "size": 20 }, title_fontsize=22, fancybox=True)

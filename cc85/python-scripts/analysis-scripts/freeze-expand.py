@@ -17,7 +17,7 @@ tcoolBtcc = 0.2
 diniBdinj = 70.671
 Tcl = 4.0e+04
 start = 0
-till = 150
+till = 66
 res = 16
 
 tcc = np.sqrt(chi)
@@ -25,7 +25,7 @@ tcc = np.sqrt(chi)
 extra = "."
 label = f"c{chi},m{mach:.3f},T4e4,t{tcoolBtcc:.2f},r{diniBdinj:.3f}" # -res{res}"
 print(label)
-location = f"../../output-{label}/{extra}/"
+location = "../../output-res-16/" #f"../../output-{label}/{extra}/"
 
 initial_cell_coords = 0
 initial_node_coords = 0

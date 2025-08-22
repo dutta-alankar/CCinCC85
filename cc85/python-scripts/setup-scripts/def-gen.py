@@ -74,8 +74,19 @@ RinibyRcl = 40
 
 PinibykB = 2.5e+05 # Kcm^-3, degenerate
 '''
-
 # From dimensional parameters
+'''
+# Param set 2
+chi = 100
+Mw = 1.996
+tcoolmBytcc = 8.00
+Tcl = 4.0e+04 # K
+RinibyRcl = 2292.516
+
+PinibykB = 1.262e+06 # Kcm^-3, degenerate
+'''
+
+# Param set 1
 chi = 100
 Mw = 1.496
 tcoolmBytcc = 0.80
@@ -109,16 +120,18 @@ Edot = ((Pw/prsTini) * (vw/velTini) *(Rinj*pc)**2) #erg s^-1
 
 sanity = (rhow/rhoTini)/((Pw/prsTini)*(vw/velTini)**-2)
 
-print('M_ini = %.3f'%Mw)
-print('Mdot = %.2e MSun/yr'%Mdot)
-print('Edot = %.2e erg/s'%Edot)
-print('R_inj = %.2e pc'%(Rinj*pc/pc))
-print('R_ini = %.2e pc'%(Rini*pc/pc))
-print('R_cl = %.2e pc'%(Rcl*pc/pc))
-print('R_go = %.2e pc'%Rgo)
-print('T_cl = %.2e K'%Tcl)
-print('R_ini/R_inj = %.2f'%(Rini/Rinj))
-print('R_inj/R_cl = %.2f'%(Rinj/Rcl))
+if __name__ == '__main__':
+    print('M_ini = %.3f'%Mw)
+    print('Mdot = %.2e MSun/yr'%Mdot)
+    print('Edot = %.2e erg/s'%Edot)
+    print('R_inj = %.2e pc'%(Rinj*pc/pc))
+    print('R_ini = %.2e pc'%(Rini*pc/pc))
+    print('R_cl = %.2e pc'%(Rcl*pc/pc))
+    print('R_go = %.2e pc'%Rgo)
+    print('T_cl = %.2e K'%Tcl)
+    print('R_ini/R_inj = %.3f'%(Rini/Rinj))
+    print('R_inj/R_cl = %.3f'%(Rinj/Rcl))
+    print('R_ini/R_cl = %.3f'%(Rini/Rcl))
 
 UNIT_LENGTH   = Rcl* pc
 UNIT_DENSITY  = rhoTini* ((Mdot*(MSun/yr))**1.5) * (Edot**-0.5) * ((Rinj*pc)**-2)

@@ -9,10 +9,10 @@ import importlib
 constants_add_misc = importlib.import_module("def-gen")
 globals().update(vars(constants_add_misc)) #imported variables
 
-Rclbydcell  = 8 #resolution
-Npar   = 600
+Rclbydcell  = 16 #resolution
+Npar   = 400  # 600
 Nprp   = 20
-Nleft  = 2
+Nleft  = 4.0
 buf_t  = 16.0
 
 Rbarini  = Rini/Rinj
@@ -38,8 +38,8 @@ Nth    = int(np.ceil((thend-thbeg)/dth))
 Nph    = Nth
 
 cfl    = 0.2
-tstop  = 10.0*tcc*np.sqrt(chi)
-dt_ini = 1.e-8
+tstop  = 150.0*tcc #*np.sqrt(chi)
+dt_ini = 1.e-6
 dt_analysis = 1e-1*tcc
 
 output_dir = './output'

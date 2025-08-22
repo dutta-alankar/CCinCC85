@@ -4,7 +4,7 @@ Created on Sat Oct  29 23:06:48 2024
 
 @author: alankar
 
-Usage: time pvbatch cloud-analysis_paraview-filters.py /freya/ptmp/mpa/adutt/CCinCC85/cc85/output-c100,m1.496,T4e4,t0.10,r35.335 1 c100,m1.496,T4e4,t0.10,r35.335
+Usage: time pvbatch cloud-analysis_paraview-filters.py /freya/ptmp/mpa/adutt/CCinCC85/cc85/output-c100,m1.496,T4e4,t0.10,r35.335 1 c100,m1.496,T4e4,t0.10,r35.335 8
 """
 
 import sys
@@ -12,21 +12,41 @@ import os
 # state file generated using paraview version 5.11.2
 import paraview
 
-if len(sys.argv)!=4:
+debug = True
+
+if len(sys.argv)!=4 and len(sys.argv)!=5:
     print("Wrong usage!")
     sys.exit(1)
 output_dir = sys.argv[1]
 file_no = int(sys.argv[2])
 label = sys.argv[3]
+if len(sys.argv)==5:
+    res = int(sys.argv[4])
+else:
+    res = 8
 vanl = "vanl" in output_dir
+# if res!=8:
+while output_dir[-1]=="/": 
+    output_dir = output_dir[-1]
+output_dir = f"{output_dir}-r{res}"
+if file_no==0:
+    print(f"Looking for data at:{output_dir}")
 
-print(f"Working on: output{'-vanl-' if vanl else '-'}{label}/data.{file_no:04d}.flt.xmf")
+if len(sys.argv)==4:
+    print(f"Working on: output{'-vanl-' if vanl else '-'}{label}/data.{file_no:04d}.flt.xmf")
+else:
+    print(f"Working on: output{'-vanl-' if vanl else '-'}{label}-r{res}/data.{file_no:04d}.flt.xmf")
 
-analysis_data_dir = f"paraview-cloud-analysis_data-dump{'-vanl' if vanl else ''}"
+if len(sys.argv)==4:
+    analysis_data_dir = f"paraview-cloud-analysis_data-dump{'-vanl' if vanl else ''}"
+else:
+    analysis_data_dir = f"paraview-cloud-analysis_data-dump{'-vanl' if vanl else ''}-res{res}"
 os.makedirs(f"./{analysis_data_dir}", exist_ok=True)
 dump_file = f"./{analysis_data_dir}/{label}.pickle"
 
 filter_script = f"""
+debug = {debug}
+if debug: print("Processing programmable filter")
 import os
 import numpy as np
 import pickle
@@ -57,9 +77,11 @@ cloud_pos_z = np.array(data_cloud.CellData.GetArray("Z"))
 cloud_tot_mass = np.sum(cloud_density*cloud_vols)
 
 # -------------- Calculate 3 velocities on the surface --------------
+if debug: print("Calculate 3 velocities on the surface")
 X = np.array(data_normals.CellData.GetArray("X"))
 Y = np.array(data_normals.CellData.GetArray("Y"))
 Z = np.array(data_normals.CellData.GetArray("Z"))
+if debug: print("Cells: ", Z.flatten().shape[0])
 
 r = np.sqrt(X**2 + Y**2 + Z**2)
 R = np.sqrt(X**2 + Y**2)
@@ -108,6 +130,8 @@ vtu_avg = np.sum(density*vtu*cellvol)/np.sum(density*cellvol)
 if os.path.exists("{dump_file}") and {file_no}==0:
   os.remove("{dump_file}")
 mode = 'append' if os.path.isfile("{dump_file}") else 'write'
+
+if debug: print("Dumping pickle")
 
 quantity = {{}}
 if mode == 'append':
@@ -221,6 +245,7 @@ cellSize_volume = CellSize(registrationName='CellSize_volume', Input=cloud_mater
 cellSize_volume.ComputeSum = 1
 
 # create a new 'Programmable Filter'
+if debug: print("Applying filter")
 programmableFilter3 = ProgrammableFilter(registrationName='ProgrammableFilter3', Input=[cellSize_volume, cellSize_surface, generateSurfaceNormals1, cloud_material])
 programmableFilter3.Script = filter_script
 programmableFilter3.RequestInformationScript = ''
@@ -233,6 +258,7 @@ programmableFilter3.PythonPath = ''
 
 # show data from programmableFilter3
 programmableFilter3Display = Show(programmableFilter3, spreadSheetView2, 'SpreadSheetRepresentation')
+if debug: print("Done applying!")
 
 # trace defaults for the display properties.
 programmableFilter3Display.Assembly = ''

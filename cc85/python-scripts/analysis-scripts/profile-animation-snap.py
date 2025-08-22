@@ -75,6 +75,8 @@ rini_B_rcl = [28.268, 35.335, 70.671, 176.677, 282.684, 353.355, 494.697, 883.38
 tcool_mix_B_tcc = [tcool_mix_B_tcc[2],]
 rini_B_rcl = [rini_B_rcl[2],]
 
+extra = "-res16"
+
 mach = 1.496
 Tcl = 4.0e+04
 chi = 100
@@ -145,13 +147,13 @@ for select in range(len(tcool_mix_B_tcc)):
     ndens_cl_ini = chi * ndens_w_ini
     prs_w_ini = ndens_w_ini*chi*Tcl # p/kB
     v_w_ini = UNIT_VELOCITY # cgs
-    plot_filename = f"snap-profile-{label}"
+    plot_filename = f"snap-profile-{label}{extra}"
 
     def tick_function(X):
         V = X * distance_ini * UNIT_LENGTH/kpc
         return [f"{z:.1f}" for z in V]
 
-    with open(f"./paraview-cloud-analysis_data-dump/{label}.pickle", "rb") as handle:
+    with open(f"./paraview-cloud-analysis_data-dump{extra}/{label}.pickle", "rb") as handle:
         cloud_data = pickle.load(handle)
     # print(f"./paraview-cloud-analysis_data-dump/{label}.pickle")
     # print(list(cloud_data.keys()))
